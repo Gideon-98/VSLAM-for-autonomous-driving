@@ -1,0 +1,14 @@
+-	Bundle Adjustement:
+	-	Bundle Adjustment - A Modern Synhesis_Triggs
+
+-	VSLAM1
+	-	VO_Part_I_Scaramuzza
+	-	VO_Part_II_Scaramuzza
+	-	MNT_Methods for nonlinear least squares (low prio)
+
+-	VSLAM2
+
+
+
+IMPORTANT VIDEOS - https://www.youtube.com/@CyrillStachniss/videos
+
