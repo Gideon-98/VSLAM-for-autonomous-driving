@@ -1,5 +1,7 @@
 -	Bundle Adjustement:
-	-	Bundle Adjustment - A Modern Synhesis_Triggs
+	-	A Modern Synhesis_Triggs
+	-	Bundle Adjustement 1 	- https://www.youtube.com/watch?v=sobyKHwgB0Y&t=81s
+	-	Bundle Adjustement 2 	- https://www.youtube.com/watch?v=LKDLcKrWOIU
 
 -	VSLAM1
 	-	VO_Part_I_Scaramuzza
