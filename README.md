@@ -4,6 +4,9 @@ The project’s goal is to develop a SLAM system which can successfully reconstr
 Outcomes:
 
 ▶ Development of a comprehensive SLAM method
+
 ▶ Use of grayscale or color image information
+
 ▶ Evaluation of algorithm performance using KITTI GT
+
 ▶ Optional: use of LIDAR and/or stereo information
