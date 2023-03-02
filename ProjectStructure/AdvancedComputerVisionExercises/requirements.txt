@@ -1,0 +1,15 @@
+numpy
+opencv-python
+lmfit
+matplotlib
+scipy
+scikit-learn
+tqdm
+open3d
+numba
+bokeh
+tensorflow
+
+# Lec 8
+# See install_face_recognition.txt for GPU support
+# face_recognition #  Takes a long time to install :)
