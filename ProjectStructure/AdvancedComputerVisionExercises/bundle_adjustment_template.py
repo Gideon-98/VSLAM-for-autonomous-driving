@@ -159,19 +159,7 @@ def objective(params, n_cams, n_Qs, cam_idxs, Q_idxs, qs):
     # Params is passed from bundle_adjustment() and contains the camera parameters and 3D points
     # project() expects an arrays of shape (len(qs), 3) indexed using Q_idxs and (len(qs), 9) indexed using cam_idxs
     # Copy the elements of the camera parameters and 3D points based on cam_idxs and Q_idxs
-
-    # Get the camera parameters
-    cam_params = params[:n_cams * 9].reshape((n_cams, 9))
-
-    # Get the 3D points
-    Qs = params[n_cams * 9:].reshape((n_Qs, 3))
-
-    # Project the 3D points into the image planes
-    qs_proj = project(Qs[Q_idxs], cam_params[cam_idxs])
-
-    # Calculate the residuals
-    residuals = (qs_proj - qs).ravel()
-    return residuals
+    pass
 
 
 def bundle_adjustment(cam_params, Qs, cam_idxs, Q_idxs, qs):
@@ -197,21 +185,7 @@ def bundle_adjustment(cam_params, Qs, cam_idxs, Q_idxs, qs):
     # save the initial residuals by manually calling the objective function
     # residual_init = objective()
     # res = least_squares(.....)
-
-    # Stack the camera parameters and the 3D points
-    params = np.hstack((cam_params.ravel(), Qs.ravel()))
-
-    # Save the initial residuals
-    residual_init = objective(params, cam_params.shape[0], Qs.shape[0], cam_idxs, Q_idxs, qs)
-
-    # Perform the least_squares optimization
-    res = least_squares(objective, params, verbose=2, x_scale='jac', ftol=1e-4, method='trf',
-                        args=(cam_params.shape[0], Qs.shape[0], cam_idxs, Q_idxs, qs))
-
-    # Get the residuals at the solution and the solution
-    residuals_solu = res.fun
-    solu = res.x
-    return residual_init, residuals_solu, solu
+    pass
 
 def sparsity_matrix(n_cams, n_Qs, cam_idxs, Q_idxs):
     """
@@ -232,19 +206,7 @@ def sparsity_matrix(n_cams, n_Qs, cam_idxs, Q_idxs):
     n = n_cams * 9 + n_Qs * 3  # number of parameters
     sparse_mat = lil_matrix((m, n), dtype=int)
     # Fill the sparse matrix with 1 at the locations where the parameters affects the residuals
-
-    i = np.arange(cam_idxs.size)
-    # Sparsity from camera parameters
-    for s in range(9):
-        sparse_mat[2 * i, cam_idxs * 9 + s] = 1
-        sparse_mat[2 * i + 1, cam_idxs * 9 + s] = 1
-
-    # Sparsity from 3D points
-    for s in range(3):
-        sparse_mat[2 * i, n_cams * 9 + Q_idxs * 3 + s] = 1
-        sparse_mat[2 * i + 1, n_cams * 9 + Q_idxs * 3 + s] = 1
-
-    return sparse_mat
+    pass
 
 
 def bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs, qs, sparse_mat):
@@ -266,25 +228,11 @@ def bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs, qs, sparse
     residuals_solu (ndarray): Residuals at the solution
     solu (ndarray): Solution
     """
-
-    # Stack the camera parameters and the 3D points
-    params = np.hstack((cam_params.ravel(), Qs.ravel()))
-
-    # Save the initial residuals
-    residual_init = objective(params, cam_params.shape[0], Qs.shape[0], cam_idxs, Q_idxs, qs)
-
-    # Perform the least_squares optimization with sparsity
-    res = least_squares(objective, params, jac_sparsity=sparse_mat, verbose=2, x_scale='jac', ftol=1e-4, method='trf',
-                        args=(cam_params.shape[0], Qs.shape[0], cam_idxs, Q_idxs, qs))
-
-    # Get the residuals at the solution and the solution
-    residuals_solu = res.fun
-    solu = res.x
-    return residual_init, residuals_solu, solu
+    pass
 
 
 def main():
-    data_file = "../data/problem-49-7776-pre/problem-49-7776-pre.txt.bz2"
+    data_file = "data/problem-49-7776-pre/problem-49-7776-pre.txt.bz2"
     cam_params, Qs, cam_idxs, Q_idxs, qs = read_bal_data(data_file)
     cam_params_small, Qs_small, cam_idxs_small, Q_idxs_small, qs_small = shrink_problem(1000, cam_params, Qs, cam_idxs,
                                                                                         Q_idxs, qs)
