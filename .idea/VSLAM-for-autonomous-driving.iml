@@ -8,4 +8,11 @@
     <orderEntry type="jdk" jdkName="Python 3.8 (VSLAM-for-autonomous-driving)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
+  <component name="PyNamespacePackagesService">
+    <option name="namespacePackageFolders">
+      <list>
+        <option value="$MODULE_DIR$/ProjectStructure" />
+      </list>
+    </option>
+  </component>
 </module>
