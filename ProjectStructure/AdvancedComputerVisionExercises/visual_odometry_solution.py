@@ -218,7 +218,7 @@ class VisualOdometry():
 
 
 def main():
-    data_dir = '../data/KITTI_sequence_1'  # Try KITTI_sequence_2 too
+    data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2 too
     vo = VisualOdometry(data_dir)
 
     play_trip(vo.images)  # Comment out to not play the trip
