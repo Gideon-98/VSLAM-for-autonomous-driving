@@ -14,12 +14,14 @@ Outcomes:
 
 Current Steps :
 
-▶ Implement KITTI into exercise 4
+▶ Implement KITTI into exercise 4                               DONE
 
 ▶ Incorporate exercise 2's solution into exercise 4
 
     ▶ Report can be written at this point (BARE MINIMUM)
 
-▶ Make exercise 4 generic for N cameras
+▶ Develop and implement loop closure
 
-▶ Implement Real-time visualization of mapping
+▶ More advanced VSLAM methods (ORB-SLAM etc.)
+
+▶ Implement Real-time visualization of mapping (Nice-To-Have)
