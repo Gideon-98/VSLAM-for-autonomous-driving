@@ -9,11 +9,7 @@ class HistogramGenerator:
         self.histograms = []
         self.threshold = threshold
 
-    def generate_bow_histogram(self, frame):
-        # Detect keypoints and descriptors using SURF
-        detector = cv2.xfeatures2d.SURF_create()
-        keypoints, descriptors = detector.detectAndCompute(frame, None)
-
+    def generate_bow_histogram(self, keypoints, descriptors):
         if self.vocabulary is None:
             # Cluster descriptors to create visual vocabulary
             kmeans = cv2.KMeans(n_clusters=self.num_clusters)
@@ -34,10 +30,9 @@ class HistogramGenerator:
 
         return histogram
 
-    def update_histograms(self, frames):
-        for frame in frames:
-            histogram = self.generate_bow_histogram(frame)
-            self.histograms.append(histogram)
+    def update_histograms(self, keypoints, descriptors):
+        histogram = self.generate_bow_histogram(keypoints, descriptors)
+        self.histograms.append(histogram)
 
     def detect_loop_closure(self):
         num_histograms = len(self.histograms)
