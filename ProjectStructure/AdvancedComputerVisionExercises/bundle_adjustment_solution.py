@@ -145,20 +145,20 @@ def shrink_problem(n, cam_params, Qs, cam_idxs, Q_idxs, qs):
 	
 	cam_idxs = reindex(cam_idxs)
 	Q_idxs = reindex(Q_idxs)
+	
+	"""
+	:returns
+	-   cam_params (ndarray): Shape (n_cameras, 9) contains initial estimates of parameters for all cameras. First 3
+	components in each row form a rotation vector (https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula),
+	next 3 components form a translation vector, then a focal distance and two distortion parameters.
+	-   Qs (ndarray): Shape (n_points, 3) contains initial estimates of point coordinates in the world frame.
+	-   cam_idxs (ndarray): Shape (n,) contains indices of cameras (from 0 to n_cameras - 1) involved in each
+	observation.
+	-   Q_idxs (ndarray): Shape (n,) contatins indices of points (from 0 to n_points - 1) involved in each observation.
+	-   qs (ndarray): Shape (n, 2) contains measured 2-D coordinates of points projected on images in each
+	observations.
+	"""
 	return cam_params, Qs, cam_idxs, Q_idxs, qs
-
-
-"""
-:returns
--   cam_params (ndarray): Shape (n_cameras, 9) contains initial estimates of parameters for all cameras. First 3
-components in each row form a rotation vector (https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula),
-next 3 components form a translation vector, then a focal distance and two distortion parameters.
--   Qs (ndarray): Shape (n_points, 3) contains initial estimates of point coordinates in the world frame.
--   cam_idxs (ndarray): Shape (n,) contains indices of cameras (from 0 to n_cameras - 1) involved in each observation.
--   Q_idxs (ndarray): Shape (n,) contatins indices of points (from 0 to n_points - 1) involved in each observation.
--   qs (ndarray): Shape (n, 2) contains measured 2-D coordinates of points projected on images in each observations.
-"""
-
 
 def rotate(Qs, rot_vecs):
 	"""
@@ -388,8 +388,15 @@ def bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs, qs, sparse
 def main():
 	data_file = "data/problem-49-7776-pre/problem-49-7776-pre.txt.bz2"
 	cam_params, Qs, cam_idxs, Q_idxs, qs = read_bal_data(data_file)
-	cam_params_small, Qs_small, cam_idxs_small, Q_idxs_small, qs_small = shrink_problem(1000, cam_params, Qs, cam_idxs,
-	                                                                                    Q_idxs, qs)
+	cam_params_small, Qs_small, cam_idxs_small, Q_idxs_small, qs_small = shrink_problem(1000, cam_params, Qs, cam_idxs,Q_idxs, qs)
+	"""
+	We need these parameters to perform bundle adjustement, how do we want to obtain them?
+	cam_params: an array with the initial parameters for each camera.
+	Qs: an array with the coordinates of the 3D points in the world.
+	cam_idxs: a list with the indices of the cameras for each image point.
+	Q_idxs: a list with the indices of the 3D points for each image point.
+	qs: an array with the coordinates of the image points in the cameras.
+	"""
 	
 	n_cams_small = cam_params_small.shape[0]
 	n_Qs_small = Qs_small.shape[0]

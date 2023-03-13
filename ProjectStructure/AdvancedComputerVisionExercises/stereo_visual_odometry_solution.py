@@ -410,20 +410,41 @@ def main():
     vo = VisualOdometry(data_dir)
 
     play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
-
-    gt_path = []
+    """
+    K = returns the 3x3 intrinsic calibration matrix of the camera used to capture the images in the dataset. This matrix contains information such as the focal length, principal point, and skew of the camera.
+    init_poses = list of ground truth poses for the camera captured in the dataset. Each ground truth pose is represented as a 4x4 homogeneous transformation matrix, which specifies the position and orientation of the camera at a given time stamp.
+    """
+    calib = vo._load_calib() # to store the intrinsic calibration matrix from the VisualOdometry object
+    init_poses = vo.gt_poses #init_poses is a list of ground truth poses for the camera captured in the dataset, represented as 4x4 homogeneous transformation matrices.
+    
+    poses = []
     estimated_path = []
+    
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
         if i < 1:
             cur_pose = gt_pose
         else:
             transf = vo.get_pose(i)
             cur_pose = np.matmul(cur_pose, transf)
-        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
-    plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
-                             file_out=os.path.basename(data_dir) + ".html")
+        poses.append(cur_pose)
+    """
+    We are passing to the bundle_adjustement:
+    1. poses that is a list of 4x4 homogeneous transformation matrices representing the estimated camera poses at each time.
+    2. vo is an instance of the VisualOdometry class, which contains information about the dataset such as camera calibration, ground truth poses, and image frames.
+    3. calib is the 3x3 intrinsic calibration matrix of the camera used to capture the images in the dataset, which is obtained from the VisualOdometry object.
+    """
+    estimated_poses_BA = bundle_adjustment(poses, vo, calib)
 
+    gt_path = []
+    estimated_path_BA = []
+    for i, gt_pose in enumerate(tqdm(init_poses, unit="poses")):
+        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
+        estimated_path_BA.append((estimated_poses_BA[i][0, 3], estimated_poses_BA[i][2, 3]))
+        
+    plotting.visualize_paths(gt_path, estimated_path_BA, "Stereo Visual Odometry with Bundle Adjustment",file_out=os.path.basename(data_dir) + ".html")
+    plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry without Bundle Adjustment",file_out=os.path.basename(data_dir) + ".html")
 
 if __name__ == "__main__":
     main()
+
