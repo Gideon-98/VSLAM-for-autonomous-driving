@@ -5,6 +5,8 @@ class FeatureDetector:
     def __init__(self, detector_type='SIFT'):
         self.detector_type = detector_type
         self.detector = self._create_detector()
+        self.curr_frame = 0
+        self.keypoints_list = []
 
     def _create_detector(self):
         if self.detector_type == 'SIFT':
@@ -38,3 +40,26 @@ class FeatureDetector:
         else:
             keypoints, descriptors = self.detector.compute(gray, keypoints)
         return descriptors
+
+    def update_keypoints_list(self, prev_keypoints, curr_keypoints):
+        self.curr_frame += 1
+
+        # Loop over the previous frame's keypoints
+        for i in range(len(prev_keypoints)):
+            x, y = prev_keypoints[i].pt
+
+            # Search through the keypoints list in reverse order
+            for j in range(len(self.keypoints_list) - 1, -1, -1):
+                # If a match is found between the previous frame's keypoint and a keypoint in the list,
+                # append the current frame's keypoint with the matching keypoint number
+                if self.keypoints_list[j][2:] == (x, y) and self.keypoints_list[j][1] == self.curr_frame - 1:
+                    x, y = curr_keypoints[j].pt
+                    self.keypoints_list.append((self.keypoints_list[j][0], self.curr_frame, x, y))
+                    break
+            # If no match is found, append the current frame's keypoint with the index of the previous keypoint
+            else:
+                x, y = curr_keypoints[i].pt
+                self.keypoints_list.append((i + 1, self.curr_frame, x, y))
+
+        # Sort the keypoints list by frame number, then by keypoint number
+        self.keypoints_list = sorted(self.keypoints_list, key=lambda x: (x[1], x[0]))
