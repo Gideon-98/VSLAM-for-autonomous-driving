@@ -2,6 +2,8 @@ import os
 import numpy as np
 import cv2
 from scipy.optimize import least_squares
+import matplotlib.pyplot as plt
+
 
 from lib.visualization import plotting
 from lib.visualization.video import play_trip
@@ -401,28 +403,82 @@ class VisualOdometry():
         transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
         return transformation_matrix
 
+    def extract_features(self, i, k=0):
+        # Get left and right images
+        img_left = self.images_l[i]
+        img_right = self.images_r[i]
+
+        kp_left = self.get_tiled_keypoints(img_left, 10, 20)
+        kp_right = self.get_tiled_keypoints(img_right, 10, 20)
+
+        # Create SIFT feature detector and compute descriptors
+        sift = cv2.SIFT_create()
+        kp_1, des_left = sift.compute(img_left, kp_left)
+        kp_2, des_right = sift.compute(img_right, kp_right)
+        if(k==1):
+            return des_left
+        if(k==2):
+            return des_right
+
+        matcher = cv2.BFMatcher()
+        matches = matcher.match(des_left, des_right)
+
+        matched_keypoints = []
+        for match in matches:
+            left_idx = match.queryIdx
+            right_idx = match.trainIdx
+            left_keypoint = kp_left[left_idx]
+            right_keypoint = kp_right[right_idx]
+            matched_keypoints.append((left_keypoint, right_keypoint))
+
+        # Create a new descriptor by computing the horizontal distance between matched keypoints
+        descriptor = []
+        for kp_pair in matched_keypoints:
+            left_kp = kp_pair[0]
+            right_kp = kp_pair[1]
+            dx = right_kp.pt[0] - left_kp.pt[0]
+            descriptor.append(dx)
+
+        descriptor_mean = sum(descriptor) / len(descriptor)
+        descriptor_std = (sum([(dx - descriptor_mean) ** 2 for dx in descriptor]) / len(descriptor)) ** 0.5
+        descriptor = [(dx - descriptor_mean) / descriptor_std for dx in descriptor]
+
+        # Print the new descriptor
+        #print(descriptor)
+        return descriptor
+
+    def descriptor_list(self):
+        list =[]
+        for i in range(50):
+            list.append(self.extract_features(i))
+        print(list)
+        return list
+
+
 
 def main():
-    data_dir = 'data/00_short'  # Try KITTI sequence 00
-    #data_dir = 'data/00'  # Try KITTI sequence 00
-    #data_dir = 'data/07'  # Try KITTI sequence 07
-    #data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
+    data_dir = 'data/KITTI_sequence_1'
     vo = VisualOdometry(data_dir)
 
-    play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
+    #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
-    gt_path = []
-    estimated_path = []
-    for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
-        if i < 1:
-            cur_pose = gt_pose
-        else:
-            transf = vo.get_pose(i)
-            cur_pose = np.matmul(cur_pose, transf)
-        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
-        estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
-    plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
-                             file_out=os.path.basename(data_dir) + ".html")
+    # gt_path = []
+    # estimated_path = []
+    # for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
+    #     if i < 1:
+    #         cur_pose = gt_pose
+    #     else:
+    #         transf = vo.get_pose(i)
+    #         cur_pose = np.matmul(cur_pose, transf)
+    #     gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
+    #     estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+    # plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
+    #                          file_out=os.path.basename(data_dir) + ".html")
+    #vo.extract_features(1)
+    vo.descriptor_list()
+
+
+
 
 
 if __name__ == "__main__":
