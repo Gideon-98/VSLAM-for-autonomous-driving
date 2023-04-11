@@ -1,4 +1,5 @@
 import bz2
+import os
 
 import numpy as np
 from scipy.optimize import least_squares
@@ -430,9 +431,7 @@ def bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs, qs, sparse
 
 
 def run_BA(frame_count, BA_list, coord_3D_list):
-	#data_file = "data/problem-49-7776-pre/problem-49-7776-pre.txt.bz2"
 	cam_params, Qs, cam_idxs, Q_idxs, qs = read_VSLAM_data(frame_count, BA_list, coord_3D_list)
-	cam_params_small, Qs_small, cam_idxs_small, Q_idxs_small, qs_small = shrink_problem(1000, cam_params, Qs, cam_idxs,Q_idxs, qs)
 	"""
 	We need these parameters to perform bundle adjustement, how do we want to obtain them?
 	cam_params: an array with the initial parameters for each camera.
@@ -442,17 +441,7 @@ def run_BA(frame_count, BA_list, coord_3D_list):
 	qs: an array with the coordinates of the image points in the cameras.
 	"""
 	
-	n_cams_small = cam_params_small.shape[0]
-	n_Qs_small = Qs_small.shape[0]
-	print("n_cameras: {}".format(n_cams_small))
-	print("n_points: {}".format(n_Qs_small))
-	print("Total number of parameters: {}".format(9 * n_cams_small + 3 * n_Qs_small))
-	print("Total number of residuals: {}".format(2 * qs_small.shape[0]))
-	
-	small_residual_init, small_residual_minimized, opt_params = bundle_adjustment(cam_params_small, Qs_small,
-	                                                                              cam_idxs_small,
-	                                                                              Q_idxs_small, qs_small)
-	
+
 	n_cams = cam_params.shape[0]
 	n_Qs = Qs.shape[0]
 	print("n_cameras: {}".format(n_cams))
@@ -466,8 +455,9 @@ def run_BA(frame_count, BA_list, coord_3D_list):
 	residual_init, residual_minimized, opt_params = bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs,
 	                                                                                qs, sparse_mat)
 	
-	plot_residual_results(qs_small, small_residual_init, small_residual_minimized, qs, residual_init,
-	                      residual_minimized)
+	plot_residual_results( qs, residual_init, residual_minimized)
+
+	return opt_params
 
 
 if __name__ == "__main__":

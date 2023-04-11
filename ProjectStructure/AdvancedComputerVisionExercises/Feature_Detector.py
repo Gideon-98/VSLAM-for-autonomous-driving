@@ -41,16 +41,16 @@ class FeatureDetector:
         # Find labels of keypoints
         preindex = []
         last_stop = -1
-        for i in self.keypoint_list[target][0]:
-            for j in self.BA_list:
+        for i in range(len(self.keypoint_list[target][0])):
+            for j in range(len(self.BA_list)):
                 if self.BA_list[j][1] == target and j > last_stop:
                     preindex.append(j)
                     last_stop = j
 
         # Sort labels of keypoints
         labels = []
-        for i in self.keypoint_list[target][0]:
-            for j in preindex:
+        for i in range(len(self.keypoint_list[target][0])):
+            for j in range(len(preindex)):
                 x_correct = (self.keypoint_list[target][0][0][i] == self.BA_list[preindex[j]][2])
                 y_correct = (self.keypoint_list[target][0][1][i] == self.BA_list[preindex[j]][3])
                 if x_correct and y_correct:
@@ -88,19 +88,19 @@ class FeatureDetector:
     def append_keypoints(self, matched_kp, matched_labels, unmatched_kp):
         # Create each point in the form the BA likes
         matched_point_list = []
-        for i in matched_kp:
+        for i in range(len(matched_kp)):
             matched_point_list[i] = [matched_labels[i], self.curr_frame, matched_kp[i][0], matched_kp[i][1]]
         # Sort by first index
         matched_point_list = sorted(matched_point_list, key=lambda x: x[0])
 
         # If BA_list is empty, just append
         if not self.BA_list:
-            for i in matched_point_list:
+            for i in range(len(matched_point_list)):
                 self.BA_list.append(matched_point_list[i])
         # Append matched points
         if self.BA_list:
-            for i in matched_kp:
-                for j in self.BA_list:
+            for i in range(len(matched_kp)):
+                for j in range(len(self.BA_list)):
                     current_match_point = (self.BA_list[j][0] == matched_labels[i])
                     next_is_false = (self.BA_list[j + 1][0] != matched_labels[i])
                     correct_point = current_match_point and next_is_false
@@ -109,7 +109,7 @@ class FeatureDetector:
 
         # Append unmatched list
         startpoint = self.BA_list[len(self.BA_list)][0]
-        for i in unmatched_kp:
+        for i in range(len(unmatched_kp)):
             self.BA_list.append([startpoint + 1 + i, self.curr_frame, unmatched_kp[i][0], unmatched_kp[i][1]])
 
     def run_feature_detector(self):
