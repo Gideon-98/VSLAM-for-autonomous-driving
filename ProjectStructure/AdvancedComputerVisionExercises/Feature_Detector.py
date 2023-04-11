@@ -41,7 +41,7 @@ class FeatureDetector:
         # Find labels of keypoints
         preindex = []
         last_stop = -1
-        for i in self.keypoint_list[target]:
+        for i in self.keypoint_list[target][0]:
             for j in self.BA_list:
                 if self.BA_list[j][1] == target and j > last_stop:
                     preindex.append(j)
@@ -49,13 +49,11 @@ class FeatureDetector:
 
         # Sort labels of keypoints
         labels = []
-        for i in self.keypoint_list[target]:
-            for j in self.BA_list:
-                same_frame = (self.BA_list[j][1] == target)
-                same_x = (self.BA_list[target][j][2] == self.keypoint_list[i][0][0])
-                same_y = (self.BA_list[target][j][3] == self.keypoint_list[i][0][1])
-
-                if same_frame and same_x and same_y:
+        for i in self.keypoint_list[target][0]:
+            for j in preindex:
+                x_correct = (self.keypoint_list[target][0][0][i] == self.BA_list[preindex[j]][2])
+                y_correct = (self.keypoint_list[target][0][1][i] == self.BA_list[preindex[j]][3])
+                if x_correct and y_correct:
                     labels.append(self.BA_list[target][j][0])
 
         # match descriptors of image 1 and image 2 keypoints
@@ -68,11 +66,11 @@ class FeatureDetector:
             img2_idx = match.trainIdx
 
             # extract coordinates of matched keypoints in image 1 and image 2
-            kp1 = self.keypoint_list[self.curr_frame][0][match.queryIdx].pt
+            kp = self.keypoint_list[self.curr_frame][0][match.queryIdx].pt
             # kp2 = self.keypoint_list[target][0][img2_idx].pt
 
             # append matched keypoints and labels to lists
-            matched_kp.append(kp1)
+            matched_kp.append(kp)
             matched_labels.append(labels[img2_idx])
 
         # create a list to store unmatched keypoints
@@ -125,4 +123,4 @@ class FeatureDetector:
 # TODO: Make the main file sort the descriptors with the keypoints when doing the optical flow
 # TODO: Once they are sorted along with each other, push them into self.keypoint_list
 # TODO: Do this instead of running self.features()
-# TODO: Then you can just run self.run_feature_detector(), and do BA if dist is close/far(?) enough
+# TODO: Then you can just run self.run_feature_detector(keypoints, descriptors), and do BA if dist is close/far(?) enough
