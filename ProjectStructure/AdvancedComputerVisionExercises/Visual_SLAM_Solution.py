@@ -193,24 +193,6 @@ class VisualOdometry():
                 return keypoints[:10]
             return keypoints
 
-        def get_kps_new?(x, y):
-            # Get the image tile
-            impatch = img[y:y + tile_h, x:x + tile_w]
-
-            # Detect keypoints
-            keypoints, descriptors = self.fastFeatures.detect(impatch)
-            features = [keypoints, descriptors]
-
-            # Correct the coordinate for the point
-            for keypt in features[0]:
-                keypt.pt = (keypt.pt[0] + x, keypt.pt[1] + y)
-
-            # Get the 10 best keypoints
-            if len(features[0]) > 10:
-                features = sorted(features, key=lambda x: -x[0].response)
-                return features[0][:10], features[1][:10]
-            return features[0], features[1]
-
         # Get the image height and width
         h, w, *_ = img.shape
 
