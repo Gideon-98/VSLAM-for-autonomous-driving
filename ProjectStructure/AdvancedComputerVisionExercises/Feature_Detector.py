@@ -12,17 +12,17 @@ class FeatureDetector:
         self.detector = cv2.ORB_create()
         self.kmeans = KMeans(n_clusters=800)
         self.hist_list = []
+        self.dist_limit = 0.1
         self.keypoint_list = []
         self.BA_list = []
+        self.coord_3d_list = []
         self.curr_frame = -1
         self.bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         self.orb = cv2.ORB_create()
 
-    def features(self, image):
+    def append_features(self, keypoints, descriptors, coords):
         self.curr_frame += 1
-        keypoints, descriptors = self.detector.detectAndCompute(image, None)
-        self.keypoint_list.append([keypoints, descriptors])
-        return keypoints, descriptors
+        self.keypoint_list.append([keypoints, descriptors, coords])
 
     def append_histogram(self):
         # keypoint, descriptor = self.features(image, self.detector)
@@ -67,7 +67,6 @@ class FeatureDetector:
 
             # extract coordinates of matched keypoints in image 1 and image 2
             kp = self.keypoint_list[self.curr_frame][0][match.queryIdx].pt
-            # kp2 = self.keypoint_list[target][0][img2_idx].pt
 
             # append matched keypoints and labels to lists
             matched_kp.append(kp)
@@ -75,23 +74,25 @@ class FeatureDetector:
 
         # create a list to store unmatched keypoints
         unmatched_kp = []
+        unmatched_3D = []
 
         # loop over all keypoints in image 2 and check if each one is in matched keypoints
         for i in range(len(self.keypoint_list[self.curr_frame][1])):
             if i not in [match.trainIdx for match in matches]:
                 # if not matched, append the keypoint coordinates to the list of unmatched keypoints
-                unmatched_kp.append(self.keypoint_list[self.curr_frame][1][i].pt)
+                unmatched_kp.append(self.keypoint_list[self.curr_frame][0][i].pt)
+                unmatched_3D.append(self.keypoint_list[self.curr_frame][2][i])
 
         # return list of matched keypoints and labels
-        return matched_kp, matched_labels, unmatched_kp
+        return matched_kp, matched_labels, unmatched_kp, unmatched_3D
 
-    def append_keypoints(self, matched_kp, matched_labels, unmatched_kp):
+    def append_keypoints_match(self, matched_kp, matched_labels, unmatched_kp, unmatched_3D):
         # Create each point in the form the BA likes
         matched_point_list = []
         for i in range(len(matched_kp)):
             matched_point_list[i] = [matched_labels[i], self.curr_frame, matched_kp[i][0], matched_kp[i][1]]
         # Sort by first index
-        matched_point_list = sorted(matched_point_list, key=lambda x: x[0])
+        # matched_point_list = sorted(matched_point_list, key=lambda x: x[0])
 
         # If BA_list is empty, just append
         if not self.BA_list:
@@ -108,15 +109,27 @@ class FeatureDetector:
                         self.BA_list.insert(j + 1, matched_point_list[i])
 
         # Append unmatched list
-        startpoint = self.BA_list[len(self.BA_list)][0]
+        startpoint = self.BA_list[-1][0]
         for i in range(len(unmatched_kp)):
-            self.BA_list.append([startpoint + 1 + i, self.curr_frame, unmatched_kp[i][0], unmatched_kp[i][1]])
+            self.BA_list.append([startpoint + i + 1, self.curr_frame, unmatched_kp[i][0], unmatched_kp[i][1]])
+            self.coord_3d_list.append(unmatched_3D[i])
 
-    def run_feature_detector(self):
-        self.features()
+    def append_keypoints_no_match(self):
+        # Append unmatched list
+        startpoint = self.BA_list[-1][0]
+        for i in range(len(self.keypoint_list[self.curr_frame])):
+            point = [self.keypoint_list[self.curr_frame][i][0], self.keypoint_list[self.curr_frame][i][1]]
+            self.BA_list.append([startpoint + i + 1, point[0], point[1]])
+            self.coord_3d_list.append(self.keypoint_list[self.curr_frame][i][2])
+
+    def run_feature_detector(self, keypoints, descriptors, coords):
+        self.append_features(keypoints, descriptors, coords)
         self.append_histogram()
         dist, target = self.find_nearest_neighbor(self.hist_list[-1])
-        self.append_keypoints(self.compare_keypoints(target))
+        if dist < self.dist_limit:
+            self.append_keypoints_match(self.compare_keypoints(target))
+        else:
+            self.append_keypoints_no_match()
 
         return dist
 
