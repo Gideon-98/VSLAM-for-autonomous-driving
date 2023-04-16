@@ -111,12 +111,6 @@ class ListBundler:
                     if correct_point:
                         self.BA_list.insert(j + 1, matched_point_list[i])
 
-        # Append unmatched list
-        startpoint = self.BA_list[-1][0]
-        for i in range(len(unmatched_kp)):
-            self.BA_list.append([startpoint + i + 1, self.curr_frame, unmatched_kp[i][0], unmatched_kp[i][1]])
-            self.coord_3d_list.append(unmatched_3D[i])
-
     def residual_append(self, target, match, no_match):
         match_list = []
         no_match_list = []
