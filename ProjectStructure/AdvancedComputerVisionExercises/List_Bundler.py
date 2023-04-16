@@ -117,6 +117,34 @@ class ListBundler:
             self.BA_list.append([startpoint + i + 1, self.curr_frame, unmatched_kp[i][0], unmatched_kp[i][1]])
             self.coord_3d_list.append(unmatched_3D[i])
 
+    def residual_append(self, target, match, no_match):
+        match_list = []
+        no_match_list = []
+        for i in range(len(match)):
+            hit = False
+            for j in range(len(self.BA_list)):
+                match_frame = (self.BA_list[j][1] == target)
+                match_x = (self.BA_list[j][2] == match[i][0][0])
+                match_y = (self.BA_list[j][3] == match[i][0][1])
+                if match_frame and match_x and match_y:
+                    hit = True
+            if not hit:
+                match_list.append(match[i])
+
+        for i in range(len(no_match)):
+            hit = False
+            for j in range(len(self.BA_list)):
+                match_frame = (self.BA_list[j][1] == target)
+                match_x = (self.BA_list[j][2] == no_match[i][0][0])
+                match_y = (self.BA_list[j][3] == no_match[i][0][1])
+                if match_frame and match_x and match_y:
+                    hit = True
+            if not hit:
+                no_match_list.append(no_match[i])
+
+        self.append_keypoints_tracked(match_list[0], match_list[2], match_list[3])
+        self.append_keypoints_no_match(no_match_list[0], no_match_list[2])
+
     def append_keypoints_tracked(self, keypoints, coordinates, match):
         # Append unmatched list
         startpoint = self.BA_list[-1][0]
@@ -144,6 +172,7 @@ class ListBundler:
         dist, target = self.find_nearest_neighbor(self.hist_list[-1])
         if dist < self.dist_limit:
             self.append_keypoints_match(self.compare_keypoints(target))
+            self.residual_append(target, match, no_match)
         else:
             self.append_keypoints_tracked(match[0], match[2], match[3])
             self.append_keypoints_no_match(no_match[0], no_match[2])
