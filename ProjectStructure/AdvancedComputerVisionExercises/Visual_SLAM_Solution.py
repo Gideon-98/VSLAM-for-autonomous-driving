@@ -2,7 +2,7 @@ import os
 import numpy as np
 import cv2
 from scipy.optimize import least_squares
-from Feature_Detector import FeatureDetector
+from List_Bundler import ListBundler
 from Bundle_Adjustment import run_BA
 
 from lib.visualization import plotting

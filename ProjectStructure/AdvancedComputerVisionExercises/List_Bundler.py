@@ -1,3 +1,5 @@
+import numpy as np
+
 from Visual_SLAM_Solution import cv2
 from sklearn.cluster import KMeans
 from sklearn.neighbors import NearestNeighbors
@@ -6,7 +8,7 @@ from sklearn.neighbors import NearestNeighbors
 # BoW code inspired by https://towardsdatascience.com/bag-of-visual-words-in-a-nutshell-9ceea97ce0fb
 
 
-class FeatureDetector:
+class ListBundler:
 
     def __init__(self):
         self.detector = cv2.ORB_create()
@@ -20,9 +22,10 @@ class FeatureDetector:
         self.bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         self.orb = cv2.ORB_create()
 
-    def append_features(self, keypoints, descriptors, coords):
+    def append_features(self, match, no_match):
         self.curr_frame += 1
-        self.keypoint_list.append([keypoints, descriptors, coords])
+        features = np.concatenate(match, no_match)
+        self.keypoint_list.append([features[0], features[1], features[2]])
 
     def append_histogram(self):
         # keypoint, descriptor = self.features(image, self.detector)
@@ -114,22 +117,36 @@ class FeatureDetector:
             self.BA_list.append([startpoint + i + 1, self.curr_frame, unmatched_kp[i][0], unmatched_kp[i][1]])
             self.coord_3d_list.append(unmatched_3D[i])
 
-    def append_keypoints_no_match(self):
+    def append_keypoints_tracked(self, keypoints, coordinates, match):
         # Append unmatched list
         startpoint = self.BA_list[-1][0]
-        for i in range(len(self.keypoint_list[self.curr_frame])):
-            point = [self.keypoint_list[self.curr_frame][i][0], self.keypoint_list[self.curr_frame][i][1]]
-            self.BA_list.append([startpoint + i + 1, point[0], point[1]])
-            self.coord_3d_list.append(self.keypoint_list[self.curr_frame][i][2])
+        for i in range(len(keypoints)):
+            for j in range(len(self.BA_list)):
+                match_x = (self.BA_list[j][1] == (self.curr_frame - 1) and self.BA_list[j][2] == match[i][0])
+                match_y = (self.BA_list[j][1] == (self.curr_frame - 1) and self.BA_list[j][3] == match[i][1])
+                tracked_frame = (match_x and match_y)
+                if tracked_frame:
+                    point = [self.BA_list[j][0], self.curr_frame, keypoints[i][0], keypoints[i][1]]
+                    self.BA_list.insert((j+1), [self.BA_list[j][0], self.curr_frame, point[0], point[1]])
+                    self.coord_3d_list.append(coordinates[i])
 
-    def run_feature_detector(self, keypoints, descriptors, coords):
-        self.append_features(keypoints, descriptors, coords)
+    def append_keypoints_no_match(self, keypoints, coordinates):
+        # Append unmatched list
+        startpoint = self.BA_list[-1][0]
+        for i in range(len(keypoints)):
+            point = [keypoints[i][0], keypoints[i][1]]
+            self.BA_list.append([startpoint + i + 1, self.curr_frame, point[0], point[1]])
+            self.coord_3d_list.append(coordinates[i])
+
+    def run_feature_detector(self, match, no_match):
+        self.append_features(match, no_match)
         self.append_histogram()
         dist, target = self.find_nearest_neighbor(self.hist_list[-1])
         if dist < self.dist_limit:
             self.append_keypoints_match(self.compare_keypoints(target))
         else:
-            self.append_keypoints_no_match()
+            self.append_keypoints_tracked(match[0], match[2], match[3])
+            self.append_keypoints_no_match(no_match[0], no_match[2])
 
         return dist
 
