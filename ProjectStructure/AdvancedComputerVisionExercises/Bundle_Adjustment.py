@@ -12,7 +12,7 @@ path = "ProjectStructure/AdvancedComputerVisionExercises/data/00_short/image_l"
 
 def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
     n_cams = frame_count
-    n_Qs = BA_list[-1][0]
+    n_Qs = BA_list[-1][1]
     n_qs = len(BA_list)
 
     cam_idxs = np.empty(n_qs, dtype=int)
@@ -36,7 +36,7 @@ def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
         three for intrinsic camera parameters (focal length and two distortion parameters)
     """
     cam_params = np.empty(n_cams * 9)
-    for i in range(n_cams):
+    for i in range(n_cams, 9):
         rot = cv2.Rodrigues(dof[i][0, :3][0, :3])
         if i % 8 == 0:
             cam_params[i] = rot[0]
