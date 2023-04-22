@@ -47,6 +47,7 @@ def read_bal_data(path):
 		loop used to read each line of the file containing an observation. The camera index, point index,
 		and 2D coordinates are parsed from the line and stored in the corresponding arrays
 		"""
+		
 		for i in range(n_qs):
 			cam_idx, Q_idx, x, y = file.readline().split()  # the number of cameras, points, and observations
 			cam_idxs[i] = int(cam_idx)
@@ -386,8 +387,9 @@ def bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs, qs, sparse
 
 
 def main():
-	data_file = "data/problem-49-7776-pre/problem-49-7776-pre.txt.bz2"
+	data_file = "data/problem-49-7776-pre/problem-49-7776-pre.txt"
 	cam_params, Qs, cam_idxs, Q_idxs, qs = read_bal_data(data_file)
+	
 	cam_params_small, Qs_small, cam_idxs_small, Q_idxs_small, qs_small = shrink_problem(1000, cam_params, Qs, cam_idxs,Q_idxs, qs)
 	"""
 	We need these parameters to perform bundle adjustement, how do we want to obtain them?
