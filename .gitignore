@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+#ignore the data folder and its contents
+data/00/image_l*png
+data/00/image_r*png
+data/00_short/image_l*png
+data/00_short/image_r*png
+data/07/image_l*png
+data/07/image_r*png
