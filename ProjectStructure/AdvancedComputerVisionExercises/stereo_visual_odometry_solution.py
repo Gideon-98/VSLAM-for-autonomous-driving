@@ -405,6 +405,8 @@ class VisualOdometry():
         return transformation_matrix
 
     def extract_features(self, i, k=0):
+        #tuple = ()
+        #tuple[1] =
         # Get left and right images
         img_left = self.images_l[i]
         img_right = self.images_r[i]
