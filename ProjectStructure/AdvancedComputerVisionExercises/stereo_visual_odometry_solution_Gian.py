@@ -1,5 +1,4 @@
 import os
-import bundle_adjustment_solution
 import numpy as np
 import cv2
 from scipy.optimize import least_squares
@@ -411,7 +410,7 @@ class VisualOdometry():
 		transformation_matrix = self.estimate_pose(self.tp1_l, self.tp2_l, self.Q1, self.Q2)
 		return transformation_matrix
 	
-	def extract_features(self, i, k=0):
+	def extract_features(self, i):
 		# tuple = ()
 		# tuple[1] =
 		# Get left and right images
@@ -425,10 +424,7 @@ class VisualOdometry():
 		sift = cv2.SIFT_create()
 		kp_1, des_left = sift.compute(img_left, kp_left)
 		kp_2, des_right = sift.compute(img_right, kp_right)
-		if (k == 1):
-			return des_left
-		if (k == 2):
-			return des_right
+
 		
 		matcher = cv2.BFMatcher()
 		matches = matcher.match(des_left, des_right)
@@ -477,24 +473,24 @@ class VisualOdometry():
 def main():
 	data_dir = 'data/KITTI_sequence_1'
 	vo = VisualOdometry(data_dir)
-	
 	# play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 	
-	# gt_path = []
-	# estimated_path = []
-	# for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
-	#     if i < 1:
-	#         cur_pose = gt_pose
-	#     else:
-	#         transf = vo.get_pose(i)
-	#         cur_pose = np.matmul(cur_pose, transf)
-	#     gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
-	#     estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
-	# plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
-	#                          file_out=os.path.basename(data_dir) + ".html")
-	# vo.extract_features(1)
-	vo.descriptor_list()
+	gt_path = []
+	estimated_path = []
+	
+	for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
+		if i < 1:
+			cur_pose = gt_pose
+		else:
+			transf = vo.get_pose(i)
+			cur_pose = np.matmul(cur_pose, transf)
+		gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
+			estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+	#plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",file_out=os.path.basename(data_dir) + ".html")
+	
+	vo.extract_features(1)
 	vo.get_pose(1)
+	vo.extract_features(1)
 	vo.get_tuple()
 
 

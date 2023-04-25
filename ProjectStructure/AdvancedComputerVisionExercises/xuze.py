@@ -186,6 +186,7 @@ class VisualOdometry():
             for keypt in keypoints:
                 keypt.pt = (keypt.pt[0] + x, keypt.pt[1] + y)
 
+<<<<<<< HEAD
 
             # Draw circles at keypoints
             img_with_kps = cv2.drawKeypoints(img, keypoints, outImage=np.array([]),
@@ -196,6 +197,8 @@ class VisualOdometry():
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
+=======
+>>>>>>> 3edf610 (tuple)
             # Get the 10 best keypoints
             if len(keypoints) > 10:
                 keypoints = sorted(keypoints, key=lambda x: -x.response)
@@ -210,11 +213,16 @@ class VisualOdometry():
 
         # Flatten the keypoint list
         kp_list_flatten = np.concatenate(kp_list)
+<<<<<<< HEAD
 
         print(kp_list_flatten)
         return kp_list_flatten
 
 
+=======
+        return kp_list_flatten
+
+>>>>>>> 3edf610 (tuple)
     def track_keypoints(self, img1, img2, kp1, max_error=4):
         """
         Tracks the keypoints between frames
@@ -449,9 +457,70 @@ class VisualOdometry():
 
 
         sift = cv2.SIFT_create()
+<<<<<<< HEAD
         kp_1, des_left = sift.compute(img2_l,kp1_l)
         #print(tp2_l)
         return tp1_l, des_left, Q1
+=======
+        kp_1, des_left = sift.compute(img2_l, kp1_l)
+        # Estimate the transformation matrix
+        transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
+        print(tp2_l)
+        return tp2_l, des_left, Q2
+
+    def extract_features(self, i, k=0):
+        output = tuple
+        # Get left and right images
+        img_left = self.images_l[i]
+        img_right = self.images_r[i]
+
+        kp_left = self.get_tiled_keypoints(img_left, 10, 20)
+        kp_right = self.get_tiled_keypoints(img_right, 10, 20)
+
+        # Create SIFT feature detector and compute descriptors
+        sift = cv2.SIFT_create()
+        kp_1, des_left = sift.compute(img_left, kp_left)
+        kp_2, des_right = sift.compute(img_right, kp_right)
+        if (k == 1):
+            return des_left
+        if (k == 2):
+            return des_right
+
+        matcher = cv2.BFMatcher()
+        matches = matcher.match(des_left, des_right)
+
+        matched_keypoints = []
+        for match in matches:
+            left_idx = match.queryIdx
+            right_idx = match.trainIdx
+            left_keypoint = kp_left[left_idx]
+            right_keypoint = kp_right[right_idx]
+            matched_keypoints.append((left_keypoint, right_keypoint))
+
+        # Create a new descriptor by computing the horizontal distance between matched keypoints
+        descriptor = []
+        for kp_pair in matched_keypoints:
+            left_kp = kp_pair[0]
+            right_kp = kp_pair[1]
+            dx = right_kp.pt[0] - left_kp.pt[0]
+            descriptor.append(dx)
+
+        descriptor_mean = sum(descriptor) / len(descriptor)
+        descriptor_std = (sum([(dx - descriptor_mean) ** 2 for dx in descriptor]) / len(descriptor)) ** 0.5
+        descriptor = [(dx - descriptor_mean) / descriptor_std for dx in descriptor]
+
+        # Print the new descriptor
+        # print(descriptor)
+        return descriptor
+
+    def descriptor_list(self):
+        list = []
+        for i in range(50):
+            list.append(self.extract_features(i))
+        print(list)
+        return list
+
+>>>>>>> 3edf610 (tuple)
 
 def main():
     data_dir = 'data/KITTI_sequence_2'
@@ -459,7 +528,10 @@ def main():
 
     # play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
     #
+<<<<<<< HEAD
 
+=======
+>>>>>>> 3edf610 (tuple)
     gt_path = []
     estimated_path = []
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
@@ -469,14 +541,22 @@ def main():
             xuze = vo.get_xuze(i)
             print(xuze)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 3edf610 (tuple)
     # cur_pose = np.matmul(cur_pose, transf)
     # gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
     # estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
     # plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
     # file_out=os.path.basename(data_dir) + ".html")
 
+<<<<<<< HEAD
 
+=======
+    # vo.extract_features(1)
+    # vo.descriptor_list()
+>>>>>>> 3edf610 (tuple)
 
 
 if __name__ == "__main__":
