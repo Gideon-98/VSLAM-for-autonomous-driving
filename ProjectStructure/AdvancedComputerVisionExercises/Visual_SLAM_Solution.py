@@ -2,6 +2,8 @@ import os
 import numpy as np
 import cv2
 from scipy.optimize import least_squares
+from List_Bundler import ListBundler
+from Bundle_Adjustment import run_BA
 
 from lib.visualization import plotting
 from lib.visualization.video import play_trip
@@ -195,7 +197,7 @@ class VisualOdometry():
         h, w, *_ = img.shape
 
         # Get the keypoints for each of the tiles
-        kp_list = [get_kps(x, y) for y in range(0, h, tile_h) for x in range(0, w, tile_w)]
+        kp_list = [get_kps(x, y)[0] for y in range(0, h, tile_h) for x in range(0, w, tile_w)]
 
         # Flatten the keypoint list
         kp_list_flatten = np.concatenate(kp_list)
@@ -411,7 +413,7 @@ def main():
     # data_dir = 'data/07'  # Try KITTI sequence 07
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
     vo = VisualOdometry(data_dir)
-
+    ###listing = FeatureDetector()
     play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
     gt_path = []
@@ -424,6 +426,13 @@ def main():
             cur_pose = np.matmul(cur_pose, transf)
         gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+
+
+        ###dist = listing.run_feature_detector(keypoints, descriptors, coords)
+        ###if dist < listing.dist_limit:
+        ###    run_BA(listing.curr_frame, listing.BA_list, listing.coord_3d_list)
+
+
     plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
                              file_out=os.path.basename(data_dir) + ".html")
 
