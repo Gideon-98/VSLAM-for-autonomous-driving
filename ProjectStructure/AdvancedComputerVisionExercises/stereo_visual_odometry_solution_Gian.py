@@ -411,47 +411,45 @@ class VisualOdometry():
 		return transformation_matrix
 	
 	def extract_features(self, i):
-		# tuple = ()
-		# tuple[1] =
-		# Get left and right images
-		img_left = self.images_l[i]
-		img_right = self.images_r[i]
-		
-		kp_left = self.get_tiled_keypoints(img_left, 10, 20)
-		kp_right = self.get_tiled_keypoints(img_right, 10, 20)
-		
-		# Create SIFT feature detector and compute descriptors
-		sift = cv2.SIFT_create()
-		kp_1, des_left = sift.compute(img_left, kp_left)
-		kp_2, des_right = sift.compute(img_right, kp_right)
+		"""
+		Calculates the transformation matrix for the i'th frame
 
+		Parameters
+		----------
+		i (int): Frame index
+
+		Returns
+		-------
+		transformation_matrix (ndarray): The transformation matrix. Shape (4,4)
+		"""
+		# Get the i-1'th image and i'th image
+		img1_l, img2_l = self.images_l[i - 1:i + 1]
 		
-		matcher = cv2.BFMatcher()
-		matches = matcher.match(des_left, des_right)
+		# Get teh tiled keypoints
+		kp1_l = self.get_tiled_keypoints(img1_l, 10, 20)
 		
-		matched_keypoints = []
-		for match in matches:
-			left_idx = match.queryIdx
-			right_idx = match.trainIdx
-			left_keypoint = kp_left[left_idx]
-			right_keypoint = kp_right[right_idx]
-			matched_keypoints.append((left_keypoint, right_keypoint))
+		# Track the keypoints
+		tp1_l, tp2_l = self.track_keypoints(img1_l, img2_l, kp1_l)
 		
-		# Create a new descriptor by computing the horizontal distance between matched keypoints
-		descriptor = []
-		for kp_pair in matched_keypoints:
-			left_kp = kp_pair[0]
-			right_kp = kp_pair[1]
-			dx = right_kp.pt[0] - left_kp.pt[0]
-			descriptor.append(dx)
+		# Calculate the disparities
+		self.disparities.append(np.divide(self.disparity.compute(img2_l, self.images_r[i]).astype(np.float32), 16))
 		
-		descriptor_mean = sum(descriptor) / len(descriptor)
-		descriptor_std = (sum([(dx - descriptor_mean) ** 2 for dx in descriptor]) / len(descriptor)) ** 0.5
-		descriptor = [(dx - descriptor_mean) / descriptor_std for dx in descriptor]
+		# Calculate the right keypoints
+		tp1_l, tp1_r, tp2_l, tp2_r = self.calculate_right_qs(tp1_l, tp2_l, self.disparities[i - 1],self.disparities[i])
 		
-		# Print the new descriptor
-		# print(descriptor)
-		return descriptor
+		# Calculate the 3D points
+		Q1, Q2 = self.calc_3d(tp1_l, tp1_r, tp2_l, tp2_r)
+		
+		sift = cv2.SIFT_create()
+		kp_1, des_left = sift.compute(img2_l, kp1_l)
+		
+		# Estimate the transformation matrix
+		#transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
+		print(tp2_l)
+		print(des_left)
+		print(Q2)
+		
+		return tp2_l, des_left, Q2
 	
 	def descriptor_list(self):
 		list = []
@@ -478,20 +476,20 @@ def main():
 	gt_path = []
 	estimated_path = []
 	
-	for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
-		if i < 1:
-			cur_pose = gt_pose
-		else:
-			transf = vo.get_pose(i)
-			cur_pose = np.matmul(cur_pose, transf)
-		gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
-			estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+	# for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
+	# 	if i < 1:
+	# 		cur_pose = gt_pose
+	# 	else:
+	# 		transf = vo.get_pose(i)
+	# 		cur_pose = np.matmul(cur_pose, transf)
+	# 	gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
+	# 	estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
 	#plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",file_out=os.path.basename(data_dir) + ".html")
 	
 	vo.extract_features(1)
-	vo.get_pose(1)
-	vo.extract_features(1)
-	vo.get_tuple()
+	
+	
+	# vo.get_tuple()
 
 
 if __name__ == "__main__":
