@@ -469,7 +469,7 @@ class VisualOdometry():
 		print(self.Q1)
 		print(self.Q2)
 def main():
-	data_dir = 'data/KITTI_sequence_1'
+	data_dir = 'data/KITTI_sequence_1/'
 	vo = VisualOdometry(data_dir)
 	# play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 	
