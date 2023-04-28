@@ -130,7 +130,7 @@ dmypy.json
 
 
 #ignore the data folder and its contents
-data
+ProjectStructure/AdvancedComputerVisionExercises/data
 #data/00/image_l
 #data/00/image_r
 #data/00_short/image_l
