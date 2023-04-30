@@ -186,7 +186,6 @@ class VisualOdometry():
             for keypt in keypoints:
                 keypt.pt = (keypt.pt[0] + x, keypt.pt[1] + y)
 
-<<<<<<< HEAD
 
             # Draw circles at keypoints
             img_with_kps = cv2.drawKeypoints(img, keypoints, outImage=np.array([]),
@@ -197,8 +196,6 @@ class VisualOdometry():
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
-=======
->>>>>>> 3edf610 (tuple)
             # Get the 10 best keypoints
             if len(keypoints) > 10:
                 keypoints = sorted(keypoints, key=lambda x: -x.response)
@@ -213,16 +210,11 @@ class VisualOdometry():
 
         # Flatten the keypoint list
         kp_list_flatten = np.concatenate(kp_list)
-<<<<<<< HEAD
 
         print(kp_list_flatten)
         return kp_list_flatten
 
 
-=======
-        return kp_list_flatten
-
->>>>>>> 3edf610 (tuple)
     def track_keypoints(self, img1, img2, kp1, max_error=4):
         """
         Tracks the keypoints between frames
@@ -457,11 +449,6 @@ class VisualOdometry():
 
 
         sift = cv2.SIFT_create()
-<<<<<<< HEAD
-        kp_1, des_left = sift.compute(img2_l,kp1_l)
-        #print(tp2_l)
-        return tp1_l, des_left, Q1
-=======
         kp_1, des_left = sift.compute(img2_l, kp1_l)
         # Estimate the transformation matrix
         transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
@@ -520,7 +507,6 @@ class VisualOdometry():
         print(list)
         return list
 
->>>>>>> 3edf610 (tuple)
 
 def main():
     data_dir = 'data/KITTI_sequence_2'
@@ -528,10 +514,7 @@ def main():
 
     # play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
     #
-<<<<<<< HEAD
 
-=======
->>>>>>> 3edf610 (tuple)
     gt_path = []
     estimated_path = []
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
@@ -541,22 +524,16 @@ def main():
             xuze = vo.get_xuze(i)
             print(xuze)
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 3edf610 (tuple)
     # cur_pose = np.matmul(cur_pose, transf)
     # gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
     # estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
     # plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
     # file_out=os.path.basename(data_dir) + ".html")
 
-<<<<<<< HEAD
 
-=======
     # vo.extract_features(1)
     # vo.descriptor_list()
->>>>>>> 3edf610 (tuple)
 
 
 if __name__ == "__main__":
