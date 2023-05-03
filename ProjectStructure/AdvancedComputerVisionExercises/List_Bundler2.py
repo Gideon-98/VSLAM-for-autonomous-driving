@@ -160,5 +160,4 @@ class ListBundler:
             self.append_keypoints_loop(self.compare_keypoints_loop(target))
         else:
             self.append_keypoints_tracked_no_loop()
-
         return dist
