@@ -150,6 +150,7 @@ class ListBundler:
                 point = self.keypoint_list[self.curr_frame][i][j].pt
                 to_add = [(lastpoint + i), (self.curr_frame + j), point[0], point[1]]
                 self.BA_list.append(to_add)
+                self.coord_3d_list.append(self.temp_3d_list[self.curr_frame][i])
 
     def run_feature_detector(self, matched, xyz, descriptors):
         self.append_features(matched, xyz, descriptors)
