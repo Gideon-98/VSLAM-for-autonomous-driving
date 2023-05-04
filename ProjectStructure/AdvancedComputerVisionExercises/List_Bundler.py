@@ -10,9 +10,11 @@ from sklearn.neighbors import NearestNeighbors
 
 class ListBundler:
 
-    def __init__(self):
+    def __init__(self, n_clusters=200, n_features=500, future_iterations=6):
+        self.futuretrack = future_iterations
         self.detector = cv2.ORB_create()
-        self.kmeans = KMeans(n_clusters=800)
+        self.nclusters = n_clusters
+        self.kmeans = KMeans(n_clusters=self.nclusters, verbose=0)
         self.hist_list = []
         self.dist_limit = 0.1
         self.keypoint_list = []
@@ -20,7 +22,26 @@ class ListBundler:
         self.coord_3d_list = []
         self.curr_frame = -1
         self.bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        self.orb = cv2.ORB_create()
+        self.orb = cv2.ORB_create(nfeatures=n_features)
+
+    def trainer(self, img_list):
+        n_imgs = len(img_list)
+        descriptor_list = []
+        for img_raw in img_list:
+            img = cv2.imread(img_raw)
+            _, descriptors = self.orb.detectAndCompute(img, None)
+            if descriptors is not None:
+                descriptor_list.append(img, descriptors)
+
+        des = descriptor_list[0][1]
+        for img, descriptors in descriptor_list:
+            des = np.vstack(des, descriptors)
+
+        des_float = des.astype(float)
+        voc, variance = self.kmeans(des_float, self.nclusters, 1)
+        image_features = np.zeros((n_imgs, self.nclusters), "float32")
+        for i in range(n_imgs):
+            words,distance=vq(descriptor_list[i][1],voc)
 
     def append_features(self, match, no_match):
         self.curr_frame += 1
