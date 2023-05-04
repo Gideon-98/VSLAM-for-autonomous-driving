@@ -29,12 +29,11 @@ class VisualOdometry():
 		                      flags=cv2.MOTION_AFFINE,
 		                      maxLevel=3,
 		                      criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 0.03))
-		self.tp1_l  = 0
-		self.tp1_r  = 0
-		self.tp2_l  = 0
-		self.tp2_r  = 0
-		self.Q1 = [0,0,0]
-		self.Q2 = [0,0,0]
+		self.K_p = [1,10,100]	#list of keypoints for each image
+		self.T_p = [[2,3,4,5,6,7],[20,30,40,50,60,70],[200,300,400,500,600,700]]	#list of arrays of trackpoints, each array related to each keypoint
+		self.DDD_p = []	#list of 3d keypoints
+		
+
 	@staticmethod
 	def _load_calib(filepath):
 		"""
@@ -468,6 +467,17 @@ class VisualOdometry():
 		print("these are the 3d points")
 		print(self.Q1)
 		print(self.Q2)
+	
+	def rearrange (K_points, T_points, DDD_points):
+     	#write on a file
+		f = open("Debug_file.txt", "+")
+		for i in range (len(K_points)):
+			tuple = (K_points[i], T_points[i], DDD_points[i])
+
+	def rearrangeself (self):
+		for i in range (len(self.K_p)):
+			tuple = [self.K_p[i], self.T_p[i], self.DDD_p[i] ]	
+
 def main():
 	data_dir = 'data/KITTI_sequence_1/'
 	vo = VisualOdometry(data_dir)
