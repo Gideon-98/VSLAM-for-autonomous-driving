@@ -127,3 +127,16 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+#ignore the data folder and its contents
+ProjectStructure/AdvancedComputerVisionExercises/data
+#data/00/image_l
+#data/00/image_r
+#data/00_short/image_l
+#data/00_short/image_r
+#data/07/image_l
+#data/07/image_r
+#data/KITTI_sequence_1
+#data/KITTI_sequence_2
+#data/problem-49-7776-pre

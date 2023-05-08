@@ -6,7 +6,7 @@ from scipy.sparse import lil_matrix
 
 from lib.visualization.plotting import plot_residual_results, plot_sparsity
 
-path = "ProjectStructure/AdvancedComputerVisionExercises/data/00_short/image_l"
+path = "ProjectStructure/AdvancedComputerVisionExercises/data/problem-49-7776-pre/problem-49-7776-pre.txt"
 
 
 def read_bal_data(path):
@@ -36,7 +36,7 @@ def read_bal_data(path):
 	qs (ndarray):
 		Shape (n_observations, 2) contains measured 2-D coordinates of points projected on images in each observations.
 	"""
-	with bz2.open(path, "rt") as file:
+	with open(path, "r",encoding='utf-8') as file:
 		n_cams, n_Qs, n_qs = map(int, file.readline().split())
 		
 		cam_idxs = np.empty(n_qs, dtype=int)
@@ -47,6 +47,7 @@ def read_bal_data(path):
 		loop used to read each line of the file containing an observation. The camera index, point index,
 		and 2D coordinates are parsed from the line and stored in the corresponding arrays
 		"""
+		
 		for i in range(n_qs):
 			cam_idx, Q_idx, x, y = file.readline().split()  # the number of cameras, points, and observations
 			cam_idxs[i] = int(cam_idx)
@@ -386,8 +387,9 @@ def bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs, qs, sparse
 
 
 def main():
-	data_file = "data/problem-49-7776-pre/problem-49-7776-pre.txt.bz2"
+	data_file = "data/problem-49-7776-pre/problem-49-7776-pre.txt"
 	cam_params, Qs, cam_idxs, Q_idxs, qs = read_bal_data(data_file)
+	
 	cam_params_small, Qs_small, cam_idxs_small, Q_idxs_small, qs_small = shrink_problem(1000, cam_params, Qs, cam_idxs,Q_idxs, qs)
 	"""
 	We need these parameters to perform bundle adjustement, how do we want to obtain them?
@@ -419,6 +421,8 @@ def main():
 	# residual_init, residual_minimized, opt_params = bundle_adjustment(cam_params, Qs, cam_idxs, Q_idxs, qs)
 	sparse_mat = sparsity_matrix(n_cams, n_Qs, cam_idxs, Q_idxs)
 	plot_sparsity(sparse_mat)
+	
+	
 	residual_init, residual_minimized, opt_params = bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs,
 	                                                                                qs, sparse_mat)
 	

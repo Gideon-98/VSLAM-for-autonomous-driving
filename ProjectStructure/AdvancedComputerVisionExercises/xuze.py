@@ -2,8 +2,7 @@ import os
 import numpy as np
 import cv2
 from scipy.optimize import least_squares
-from List_Bundler import ListBundler
-from Bundle_Adjustment import run_BA
+import matplotlib.pyplot as plt
 
 from lib.visualization import plotting
 from lib.visualization.video import play_trip
@@ -30,8 +29,7 @@ class VisualOdometry():
                               flags=cv2.MOTION_AFFINE,
                               maxLevel=3,
                               criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 0.03))
-        self.tp_1 = [[]]
-        self.tp_2 = [[]]
+
     @staticmethod
     def _load_calib(filepath):
         """
@@ -188,6 +186,16 @@ class VisualOdometry():
             for keypt in keypoints:
                 keypt.pt = (keypt.pt[0] + x, keypt.pt[1] + y)
 
+
+            # Draw circles at keypoints
+            img_with_kps = cv2.drawKeypoints(img, keypoints, outImage=np.array([]),
+                                                 color=(0, 0, 255), flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
+            # Show the image with keypoints
+            cv2.imshow('Image with keypoints', img_with_kps)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+
             # Get the 10 best keypoints
             if len(keypoints) > 10:
                 keypoints = sorted(keypoints, key=lambda x: -x.response)
@@ -198,11 +206,14 @@ class VisualOdometry():
         h, w, *_ = img.shape
 
         # Get the keypoints for each of the tiles
-        kp_list = [get_kps(x, y)[0] for y in range(0, h, tile_h) for x in range(0, w, tile_w)]
+        kp_list = [get_kps(x, y) for y in range(0, h, tile_h) for x in range(0, w, tile_w)]
 
         # Flatten the keypoint list
         kp_list_flatten = np.concatenate(kp_list)
+
+        print(kp_list_flatten)
         return kp_list_flatten
+
 
     def track_keypoints(self, img1, img2, kp1, max_error=4):
         """
@@ -399,92 +410,130 @@ class VisualOdometry():
 
         # Calculate the right keypoints
         tp1_l, tp1_r, tp2_l, tp2_r = self.calculate_right_qs(tp1_l, tp2_l, self.disparities[i - 1], self.disparities[i])
-        
+
         # Calculate the 3D points
         Q1, Q2 = self.calc_3d(tp1_l, tp1_r, tp2_l, tp2_r)
 
-        # save the trackpoints
-        self.tp_1 = tp1_l.append()
-        self.tp_2 = tp2_l.append()
-        
         # Estimate the transformation matrix
         transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
         return transformation_matrix
-    
-    def estimate_new_pose (self, opt_params):
- 
-        # cam_params = opt_params[:n_cams * 9]
-        # cam_params = np.array(cam_params)
-        # cam_params = cam_params.reshape((n_cams, -1))
-        
-        adjusted_transformations = []
-        opt_3Dpoints = opt_params
-        opt_3Dpoints = np.array(opt_3Dpoints)
-        opt_3Dpoints = opt_3Dpoints.reshape((len(self.images_l), -1))
-    
-        for i in range(n_cams + 1):
-            tmp_q1 = []
-            tmp_q2 = []
-            tmp_Q1 = []
-            tmp_Q2 = []
-        
-            for idx in range(len(cam_idxs)): # For the number of 2d points
-                if cam_idxs[idx] == i:  # is the frame'idx = to the i frame
-                    tmp_q1.append(qs[idx])
-                    tmp_Q1.append(opt_3Dpoints[Q_idxs[idx]])
-            
-                if cam_idxs[idx] == i + 1: # If inx = i plus 1, it logs temp q2
-                    tmp_q2.append(qs[idx])
-                    tmp_Q2.append(opt_3Dpoints[Q_idxs[idx]])
-        
-            if (len(tmp_q1) > len(tmp_q2)):
-                tmp_q1 = tmp_q1[:len(tmp_q2)]
-                tmp_Q1 = tmp_Q1[:len(tmp_q2)]
-            else:
-                tmp_q2 = tmp_q2[:len(tmp_q1)]
-                tmp_Q2 = tmp_Q2[:len(tmp_q1)]
-        
-            tmp_q1 = np.array(tmp_q1)
-            tmp_q2 = np.array(tmp_q2)
-            tmp_Q1 = np.array(tmp_Q1)
-            tmp_Q2 = np.array(tmp_Q2)
-        
-            if (len(tmp_q1) > 1):
-                adjusted_transformations.append(self.estimate_pose(tmp_q1, tmp_q2, tmp_Q1, tmp_Q2))
-    
-        return np.array(adjusted_transformations)
-    
-    def plot_transformations ()
+    def get_xuze(self, i):
+        """
+        Calculates the transformation matrix for the i'th frame
+
+        Parameters
+        ----------
+        i (int): Frame index
+
+        Returns
+        -------
+        transformation_matrix (ndarray): The transformation matrix. Shape (4,4)
+        """
+        # Get the i-1'th image and i'th image
+        img1_l, img2_l = self.images_l[i - 1:i + 1]
+
+        # Get teh tiled keypoints
+        kp1_l = self.get_tiled_keypoints(img1_l, 10, 20)
+
+        # Track the keypoints
+        tp1_l, tp2_l = self.track_keypoints(img1_l, img2_l, kp1_l)
+
+        # Calculate the disparitie
+        self.disparities.append(np.divide(self.disparity.compute(img2_l, self.images_r[i]).astype(np.float32), 16))
+
+        # Calculate the right keypoints
+        tp1_l, tp1_r, tp2_l, tp2_r = self.calculate_right_qs(tp1_l, tp2_l, self.disparities[i - 1], self.disparities[i])
+
+        # Calculate the 3D points
+        Q1, Q2 = self.calc_3d(tp1_l, tp1_r, tp2_l, tp2_r)
+
+
+        sift = cv2.SIFT_create()
+        kp_1, des_left = sift.compute(img2_l, kp1_l)
+        # Estimate the transformation matrix
+        transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
+        print(tp2_l)
+        return tp2_l, des_left, Q2
+
+    def extract_features(self, i, k=0):
+        output = tuple
+        # Get left and right images
+        img_left = self.images_l[i]
+        img_right = self.images_r[i]
+
+        kp_left = self.get_tiled_keypoints(img_left, 10, 20)
+        kp_right = self.get_tiled_keypoints(img_right, 10, 20)
+
+        # Create SIFT feature detector and compute descriptors
+        sift = cv2.SIFT_create()
+        kp_1, des_left = sift.compute(img_left, kp_left)
+        kp_2, des_right = sift.compute(img_right, kp_right)
+        if (k == 1):
+            return des_left
+        if (k == 2):
+            return des_right
+
+        matcher = cv2.BFMatcher()
+        matches = matcher.match(des_left, des_right)
+
+        matched_keypoints = []
+        for match in matches:
+            left_idx = match.queryIdx
+            right_idx = match.trainIdx
+            left_keypoint = kp_left[left_idx]
+            right_keypoint = kp_right[right_idx]
+            matched_keypoints.append((left_keypoint, right_keypoint))
+
+        # Create a new descriptor by computing the horizontal distance between matched keypoints
+        descriptor = []
+        for kp_pair in matched_keypoints:
+            left_kp = kp_pair[0]
+            right_kp = kp_pair[1]
+            dx = right_kp.pt[0] - left_kp.pt[0]
+            descriptor.append(dx)
+
+        descriptor_mean = sum(descriptor) / len(descriptor)
+        descriptor_std = (sum([(dx - descriptor_mean) ** 2 for dx in descriptor]) / len(descriptor)) ** 0.5
+        descriptor = [(dx - descriptor_mean) / descriptor_std for dx in descriptor]
+
+        # Print the new descriptor
+        # print(descriptor)
+        return descriptor
+
+    def descriptor_list(self):
+        list = []
+        for i in range(50):
+            list.append(self.extract_features(i))
+        print(list)
+        return list
 
 
 def main():
-    data_dir = 'data/00_short'  # Try KITTI sequence 00
-    # data_dir = 'data/00'  # Try KITTI sequence 00
-    # data_dir = 'data/07'  # Try KITTI sequence 07
-    # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
+    data_dir = 'data/KITTI_sequence_2'
     vo = VisualOdometry(data_dir)
-    ###listing = FeatureDetector()
-    play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
+
+    # play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
+    #
 
     gt_path = []
     estimated_path = []
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
-        if i < 1:
+       if i < 1:
             cur_pose = gt_pose
-        else:
-            transf = vo.get_pose(i)
-            cur_pose = np.matmul(cur_pose, transf)
-        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
-        estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+       else:
+            xuze = vo.get_xuze(i)
+            print(xuze)
 
 
-        ###dist = listing.run_feature_detector(keypoints, descriptors, coords)
-        ###if dist < listing.dist_limit:
-        ###    run_BA(listing.curr_frame, listing.BA_list, listing.coord_3d_list)
+    # cur_pose = np.matmul(cur_pose, transf)
+    # gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
+    # estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+    # plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
+    # file_out=os.path.basename(data_dir) + ".html")
 
 
-    plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
-                             file_out=os.path.basename(data_dir) + ".html")
+    # vo.extract_features(1)
+    # vo.descriptor_list()
 
 
 if __name__ == "__main__":
