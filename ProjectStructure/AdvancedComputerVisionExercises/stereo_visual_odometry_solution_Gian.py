@@ -157,10 +157,10 @@ class VisualOdometry():
 		
 		# Project 3D points from i-1'th image to i'th image
 		q2_pred = Q1.dot(b_projection.T)
-		# Un-homogenize
+		# Un-homogenize: taking the first two columns of q1_pred and q2_pred and dividing them by the third column of each point.
 		q2_pred = q2_pred[:, :2].T / q2_pred[:, 2]
 		
-		# Calculate the residuals
+		# Calculate the residuals:  the differences between the actual feature points (q1 and q2) and the predicted feature points (q1_pred and q2_pred).
 		residuals = np.vstack([q1_pred - q1.T, q2_pred - q2.T]).flatten()
 		return residuals
 	
@@ -219,16 +219,16 @@ class VisualOdometry():
 
 		Returns
 		-------
-		trackpoints1 (ndarray): The tracked keypoints for the i-1'th image. Shape (n_keypoints_match, 2)
+		trackpoints1 (nda   rray): The tracked keypoints for the i-1'th image. Shape (n_keypoints_match, 2)
 		trackpoints2 (ndarray): The tracked keypoints for the i'th image. Shape (n_keypoints_match, 2)
 		"""
-		# Convert the keypoints into a vector of points and expand the dims so we can select the good ones
+		# Convert the keypoints into a vector of points and expand the dimensions, from 2 to 3, so we can select the good ones
 		trackpoints1 = np.expand_dims(cv2.KeyPoint_convert(kp1), axis=1)
 		
 		# Use optical flow to find tracked counterparts
 		trackpoints2, st, err = cv2.calcOpticalFlowPyrLK(img1, img2, trackpoints1, None, **self.lk_params)
 		
-		# Convert the status vector to boolean so we can use it as a mask
+		# Convert the status vector to boolean so we can use it as a mask, for every keypoints of the previous we know if there is the correspond in the current
 		trackable = st.astype(bool)
 		
 		# Create a maks there selects the keypoints there was trackable and under the max error
@@ -457,7 +457,7 @@ class VisualOdometry():
 		print(list)
 		return list
 	
-	def get_tuple (self):
+	def print_debug (self):
 		print("keypoints in images 1")
 		print(self.tp1_l)
 		print(self.tp1_r)
@@ -468,15 +468,17 @@ class VisualOdometry():
 		print(self.Q1)
 		print(self.Q2)
 	
-	def rearrange (K_points, T_points, DDD_points):
-     	#write on a file
+	def rearrange (self, K_points, T_points, DDD_points):
+		#write on a file
 		f = open("Debug_file.txt", "+")
 		for i in range (len(K_points)):
-			tuple = (K_points[i], T_points[i], DDD_points[i])
+			tuple = np.array(K_points[i], T_points[i], DDD_points[i])
+		return tuple
 
 	def rearrangeself (self):
 		for i in range (len(self.K_p)):
-			tuple = [self.K_p[i], self.T_p[i], self.DDD_p[i] ]	
+			tuple = np.array(self.K_p[i], self.T_p[i], self.DDD_p[i])
+		return tuple
 
 def main():
 	data_dir = 'data/KITTI_sequence_1/'

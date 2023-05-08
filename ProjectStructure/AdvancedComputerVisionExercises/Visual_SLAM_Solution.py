@@ -30,7 +30,8 @@ class VisualOdometry():
                               flags=cv2.MOTION_AFFINE,
                               maxLevel=3,
                               criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 0.03))
-
+        self.tp_1 = [[]]
+        self.tp_2 = [[]]
     @staticmethod
     def _load_calib(filepath):
         """
@@ -398,13 +399,62 @@ class VisualOdometry():
 
         # Calculate the right keypoints
         tp1_l, tp1_r, tp2_l, tp2_r = self.calculate_right_qs(tp1_l, tp2_l, self.disparities[i - 1], self.disparities[i])
-
+        
         # Calculate the 3D points
         Q1, Q2 = self.calc_3d(tp1_l, tp1_r, tp2_l, tp2_r)
 
+        # save the trackpoints
+        self.tp_1 = tp1_l.append()
+        self.tp_2 = tp2_l.append()
+        
         # Estimate the transformation matrix
         transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
         return transformation_matrix
+    
+    def estimate_new_pose (self, opt_params):
+ 
+        # cam_params = opt_params[:n_cams * 9]
+        # cam_params = np.array(cam_params)
+        # cam_params = cam_params.reshape((n_cams, -1))
+        
+        adjusted_transformations = []
+        opt_3Dpoints = opt_params
+        opt_3Dpoints = np.array(opt_3Dpoints)
+        opt_3Dpoints = opt_3Dpoints.reshape((len(self.images_l), -1))
+    
+        for i in range(n_cams + 1):
+            tmp_q1 = []
+            tmp_q2 = []
+            tmp_Q1 = []
+            tmp_Q2 = []
+        
+            for idx in range(len(cam_idxs)): # For the number of 2d points
+                if cam_idxs[idx] == i:  # is the frame'idx = to the i frame
+                    tmp_q1.append(qs[idx])
+                    tmp_Q1.append(opt_3Dpoints[Q_idxs[idx]])
+            
+                if cam_idxs[idx] == i + 1: # If inx = i plus 1, it logs temp q2
+                    tmp_q2.append(qs[idx])
+                    tmp_Q2.append(opt_3Dpoints[Q_idxs[idx]])
+        
+            if (len(tmp_q1) > len(tmp_q2)):
+                tmp_q1 = tmp_q1[:len(tmp_q2)]
+                tmp_Q1 = tmp_Q1[:len(tmp_q2)]
+            else:
+                tmp_q2 = tmp_q2[:len(tmp_q1)]
+                tmp_Q2 = tmp_Q2[:len(tmp_q1)]
+        
+            tmp_q1 = np.array(tmp_q1)
+            tmp_q2 = np.array(tmp_q2)
+            tmp_Q1 = np.array(tmp_Q1)
+            tmp_Q2 = np.array(tmp_Q2)
+        
+            if (len(tmp_q1) > 1):
+                adjusted_transformations.append(self.estimate_pose(tmp_q1, tmp_q2, tmp_Q1, tmp_Q2))
+    
+        return np.array(adjusted_transformations)
+    
+    def plot_transformations ()
 
 
 def main():
