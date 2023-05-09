@@ -408,7 +408,7 @@ class VisualOdometry():
 
         # save the trackpoints
         self.tp_1 = np.reshape(np.append(self.tp_1,tp1_l),(-1,2))
-        self.tp_1 = np.reshape(np.append(self.tp_2,tp2_l),(-1,2))
+        self.tp_2 = np.reshape(np.append(self.tp_2,tp2_l),(-1,2))
         #print(Q1)
         self.Q_1 = Q1 #np.reshape(np.append(self.Q_1,Q1),(-1,3))
         #self.Q_2 = np.reshape(np.append(self.Q_2,Q2),(-1,3))
@@ -417,7 +417,7 @@ class VisualOdometry():
         transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
         return transformation_matrix
     
-    def estimate_new_pose (self, opt_params):
+    def estimate_new_pose (self, opt_params, q1_frame_index, opt_params_idex):
  
         # cam_params = opt_params[:n_cams * 9]
         # cam_params = np.array(cam_params)
@@ -428,20 +428,20 @@ class VisualOdometry():
         opt_3Dpoints = np.array(opt_3Dpoints)
         opt_3Dpoints = opt_3Dpoints.reshape((len(self.images_l), -1)) #Make the new optimised points into a Q_n*3 matrix
     
-        for i in range(n_cams + 1): # I think this is for each frame. So tp_1.len() or something.
+        for i in range(len(self.images_l)): # I think this is for each frame. So tp_1.len() or something. This was +1 for some reason
             tmp_q1 = []
             tmp_q2 = []
             tmp_Q1 = []
             tmp_Q2 = []
         
-            for idx in range(len(cam_idxs)): # For the number of 2d points.
-                if cam_idxs[idx] == i:  # is the frame'idx = to the i frame
-                    tmp_q1.append(qs[idx])
-                    tmp_Q1.append(opt_3Dpoints[Q_idxs[idx]]) # It seems like the 3D points are globally indexed, hopefully they match the order of the 2D points, 
+            for idx in range(len(q1_frame_index)): # For the number of 2d points.
+                if q1_frame_index[idx] == i:  # is the frame'idx = to the i frame
+                    tmp_q1.append(self.tp_1[idx])
+                    tmp_Q1.append(opt_3Dpoints[opt_params_idex[idx]]) # It seems like the 3D points are globally indexed, hopefully they match the order of the 2D points,
             
-                if cam_idxs[idx] == i + 1: # If inx = i plus 1, it logs temp q2
-                    tmp_q2.append(qs[idx])
-                    tmp_Q2.append(opt_3Dpoints[Q_idxs[idx]])
+                if q1_frame_index[idx] == i + 1: # If inx = i plus 1, it logs temp q2
+                    tmp_q2.append(self.tp_1[idx])
+                    tmp_Q2.append(opt_3Dpoints[opt_params_idex[idx]])
         
             if (len(tmp_q1) > len(tmp_q2)):
                 tmp_q1 = tmp_q1[:len(tmp_q2)]
@@ -474,7 +474,8 @@ def main():
 
     gt_path = []
     estimated_path = []
-    global_3d_points = []
+    global_3d_points = np.array([])
+    q1_frame_indx = np.array([])
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
         if i < 1:
             cur_pose = gt_pose
@@ -484,11 +485,17 @@ def main():
             # from here we have the current global pose for i.
             #Here we need a function that makes the current local 3d points global.
             for p in range(0,len(vo.Q_1)):
-                global_3d_points.append([vo.Q_1[p][0] + cur_pose[0][3], vo.Q_1[p][1] + cur_pose[2][3], vo.Q_1[p][2]] + cur_pose[1][3]) # The curr pose is ordered x z y.
+                q1_frame_indx = np.append(q1_frame_indx,int(i))
+                global_3d_points = np.append(global_3d_points,[vo.Q_1[p][0] + cur_pose[0][3], vo.Q_1[p][1] + cur_pose[2][3], vo.Q_1[p][2]] + cur_pose[1][3]) # The curr pose is ordered x z y.
         gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
-    #print(cur_pose)
-    #print(global_3d_points[len(global_3d_points)-1])
+
+    global_3d_points = np.reshape(global_3d_points,(-1,3))
+
+    print(len(q1_frame_indx))
+    print(len(vo.tp_1))
+    print(len(vo.tp_2))
+    print(len(global_3d_points))
     #print(len(vo.Q_1))
     #print(len(global_3d_points))
 
