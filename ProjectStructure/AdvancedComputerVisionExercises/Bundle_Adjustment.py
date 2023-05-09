@@ -1,6 +1,6 @@
 import bz2
 
-from Visual_SLAM_Solution import cv2
+import cv2
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.sparse import lil_matrix

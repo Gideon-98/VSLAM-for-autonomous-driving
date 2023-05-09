@@ -30,8 +30,11 @@ class VisualOdometry():
                               flags=cv2.MOTION_AFFINE,
                               maxLevel=3,
                               criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 0.03))
-        self.tp_1 = [[]]
-        self.tp_2 = [[]]
+        self.tp_1 = np.array([])
+        self.tp_2 = np.array([])
+        self.Q_1 = np.array([])
+
+
     @staticmethod
     def _load_calib(filepath):
         """
@@ -198,7 +201,7 @@ class VisualOdometry():
         h, w, *_ = img.shape
 
         # Get the keypoints for each of the tiles
-        kp_list = [get_kps(x, y)[0] for y in range(0, h, tile_h) for x in range(0, w, tile_w)]
+        kp_list = [get_kps(x, y) for y in range(0, h, tile_h) for x in range(0, w, tile_w)]
 
         # Flatten the keypoint list
         kp_list_flatten = np.concatenate(kp_list)
@@ -386,7 +389,7 @@ class VisualOdometry():
         transformation_matrix (ndarray): The transformation matrix. Shape (4,4)
         """
         # Get the i-1'th image and i'th image
-        img1_l, img2_l = self.images_l[i - 1:i + 1]
+        img1_l, img2_l = self.images_l[i - 1:i + 1] # why is this i-1 and i+1?
 
         # Get teh tiled keypoints
         kp1_l = self.get_tiled_keypoints(img1_l, 10, 20)
@@ -404,8 +407,11 @@ class VisualOdometry():
         Q1, Q2 = self.calc_3d(tp1_l, tp1_r, tp2_l, tp2_r)
 
         # save the trackpoints
-        self.tp_1 = tp1_l.append()
-        self.tp_2 = tp2_l.append()
+        self.tp_1 = np.reshape(np.append(self.tp_1,tp1_l),(-1,2))
+        self.tp_1 = np.reshape(np.append(self.tp_2,tp2_l),(-1,2))
+        #print(Q1)
+        self.Q_1 = Q1 #np.reshape(np.append(self.Q_1,Q1),(-1,3))
+        #self.Q_2 = np.reshape(np.append(self.Q_2,Q2),(-1,3))
         
         # Estimate the transformation matrix
         transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
@@ -420,18 +426,18 @@ class VisualOdometry():
         adjusted_transformations = []
         opt_3Dpoints = opt_params
         opt_3Dpoints = np.array(opt_3Dpoints)
-        opt_3Dpoints = opt_3Dpoints.reshape((len(self.images_l), -1))
+        opt_3Dpoints = opt_3Dpoints.reshape((len(self.images_l), -1)) #Make the new optimised points into a Q_n*3 matrix
     
-        for i in range(n_cams + 1):
+        for i in range(n_cams + 1): # I think this is for each frame. So tp_1.len() or something.
             tmp_q1 = []
             tmp_q2 = []
             tmp_Q1 = []
             tmp_Q2 = []
         
-            for idx in range(len(cam_idxs)): # For the number of 2d points
+            for idx in range(len(cam_idxs)): # For the number of 2d points.
                 if cam_idxs[idx] == i:  # is the frame'idx = to the i frame
                     tmp_q1.append(qs[idx])
-                    tmp_Q1.append(opt_3Dpoints[Q_idxs[idx]])
+                    tmp_Q1.append(opt_3Dpoints[Q_idxs[idx]]) # It seems like the 3D points are globally indexed, hopefully they match the order of the 2D points, 
             
                 if cam_idxs[idx] == i + 1: # If inx = i plus 1, it logs temp q2
                     tmp_q2.append(qs[idx])
@@ -454,28 +460,40 @@ class VisualOdometry():
     
         return np.array(adjusted_transformations)
     
-    def plot_transformations ()
+    #def plot_transformations ()
 
 
 def main():
-    data_dir = 'data/00_short'  # Try KITTI sequence 00
+    data_dir = 'data/00_shorter'  # Try KITTI sequence 00
     # data_dir = 'data/00'  # Try KITTI sequence 00
     # data_dir = 'data/07'  # Try KITTI sequence 07
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
     vo = VisualOdometry(data_dir)
     ###listing = FeatureDetector()
-    play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
+    #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
     gt_path = []
     estimated_path = []
+    global_3d_points = []
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
         if i < 1:
             cur_pose = gt_pose
         else:
             transf = vo.get_pose(i)
-            cur_pose = np.matmul(cur_pose, transf)
+            cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
+            # from here we have the current global pose for i.
+            #Here we need a function that makes the current local 3d points global.
+            for p in range(0,len(vo.Q_1)):
+                global_3d_points.append([vo.Q_1[p][0] + cur_pose[0][3], vo.Q_1[p][1] + cur_pose[2][3], vo.Q_1[p][2]] + cur_pose[1][3]) # The curr pose is ordered x z y.
         gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+    #print(cur_pose)
+    #print(global_3d_points[len(global_3d_points)-1])
+    #print(len(vo.Q_1))
+    #print(len(global_3d_points))
+
+    #print(vo.Q_1[len(vo.Q_1)-1])
+    #print(global_3d_points[len(global_3d_points)-1])
 
 
         ###dist = listing.run_feature_detector(keypoints, descriptors, coords)

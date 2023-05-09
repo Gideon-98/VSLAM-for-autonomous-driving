@@ -1,6 +1,6 @@
 import numpy as np
 
-from Visual_SLAM_Solution import cv2
+import cv2
 from sklearn.cluster import KMeans
 from sklearn.neighbors import NearestNeighbors
 
