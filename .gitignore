@@ -140,3 +140,7 @@ ProjectStructure/AdvancedComputerVisionExercises/data
 #data/KITTI_sequence_1
 #data/KITTI_sequence_2
 #data/problem-49-7776-pre
+ProjectStructure/AdvancedComputerVisionExercises/lib/__pycache__/__init__.cpython-38.pyc
+ProjectStructure/AdvancedComputerVisionExercises/lib/visualization/__pycache__/__init__.cpython-38.pyc
+*.pyc
+*.pyc
