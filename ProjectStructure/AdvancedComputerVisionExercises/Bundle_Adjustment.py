@@ -11,8 +11,8 @@ path = "ProjectStructure/AdvancedComputerVisionExercises/data/00_short/image_l"
 
 
 def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
-    n_cams = frame_count
-    n_Qs = BA_list[-1][1]
+    n_cams = int(frame_count)
+    n_Qs = int(BA_list[-1][1])
     n_qs = len(BA_list)
 
     cam_idxs = np.empty(n_qs, dtype=int)
@@ -385,8 +385,8 @@ def bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs, qs, sparse
     return residual_init, residuals_solu, solu
 
 
-def run_BA(frame_count, BA_list, coord_3D_list):
-    cam_params, Qs, cam_idxs, Q_idxs, qs = read_VSLAM_data(frame_count, BA_list, coord_3D_list)
+def run_BA(frame_count, BA_list, coord_3D_list, dof):
+    cam_params, Qs, cam_idxs, Q_idxs, qs = read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof)
     """
 	We need these parameters to perform bundle adjustement, how do we want to obtain them?
 	cam_params: an array with the initial parameters for each camera.
