@@ -2,7 +2,7 @@ import os
 import numpy as np
 import cv2
 from scipy.optimize import least_squares
-from List_Bundler import ListBundler
+from List_Bundler3 import ListBundler
 from Bundle_Adjustment import run_BA
 
 from lib.visualization import plotting
@@ -418,18 +418,32 @@ class VisualOdometry():
         transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
         return transformation_matrix
     
-    def estimate_new_pose (self, opt_params, q1_frame_index, opt_params_idex):
- 
+    def estimate_new_pose (self, opt_params, q1_frame_index, BA_list, coord_3d_list):
+        cam_idx = []
+        Q_idx = []
+        qs = []
+        Qs = []
+
+        for i in range(len(BA_list)):
+            cam_idx.append(BA_list[i][0])
+            Q_idx.append(BA_list[i][1])
+            qs.append([BA_list[i][2], BA_list[i][3]])
+
+        for x in coord_3d_list:
+            Qs.append(x[0])
+            Qs.append(x[1])
+            Qs.append(x[2])
+
         # cam_params = opt_params[:n_cams * 9]
         # cam_params = np.array(cam_params)
         # cam_params = cam_params.reshape((n_cams, -1))
-        
+
         adjusted_transformations = []
         opt_3Dpoints = opt_params
         opt_3Dpoints = np.array(opt_3Dpoints)
-        opt_3Dpoints = opt_3Dpoints.reshape((len(self.images_l), -1)) #Make the new optimised points into a Q_n*3 matrix
+        opt_3Dpoints = opt_3Dpoints.reshape((len(coord_3d_list), -1)) #Make the new optimised points into a Q_n*3 matrix
     
-        for i in range(len(self.images_l)): # I think this is for each frame. So tp_1.len() or something. This was +1 for some reason
+        for i in range(q1_frame_index[-1] + 1): # I think this is for each frame. So tp_1.len() or something. This was +1 for some reason
             tmp_q1 = []
             tmp_q2 = []
             tmp_Q1 = []
@@ -438,11 +452,11 @@ class VisualOdometry():
             for idx in range(len(q1_frame_index)): # For the number of 2d points.
                 if q1_frame_index[idx] == i:  # is the frame'idx = to the i frame
                     tmp_q1.append(self.tp_1[idx])
-                    tmp_Q1.append(opt_3Dpoints[opt_params_idex[idx]]) # It seems like the 3D points are globally indexed, hopefully they match the order of the 2D points,
+                    tmp_Q1.append(opt_3Dpoints[Q_idx[idx]]) # It seems like the 3D points are globally indexed, hopefully they match the order of the 2D points,
             
                 if q1_frame_index[idx] == i + 1: # If inx = i plus 1, it logs temp q2
                     tmp_q2.append(self.tp_1[idx])
-                    tmp_Q2.append(opt_3Dpoints[opt_params_idex[idx]])
+                    tmp_Q2.append(opt_3Dpoints[Q_idx[idx]])
         
             if (len(tmp_q1) > len(tmp_q2)):
                 tmp_q1 = tmp_q1[:len(tmp_q2)]
@@ -465,26 +479,31 @@ class VisualOdometry():
 
 
 def main():
-    data_dir = 'data/00_shorter'  # Try KITTI sequence 00
+    data_dir = 'data/00_short'  # Try KITTI sequence 00
     # data_dir = 'data/00'  # Try KITTI sequence 00
     # data_dir = 'data/07'  # Try KITTI sequence 07
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
     vo = VisualOdometry(data_dir)
+    lister = ListBundler()
+    frame_limit = 50
     ###listing = FeatureDetector()
     play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
     gt_path = []
     estimated_path = []
     global_3d_points = []
+    new_poses = []
     q1_frame_indx = np.array([])
+    pose_list = []
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
-        if i == 2:
-                break
+        if i == frame_limit:
+            break
         if i < 1:
             cur_pose = gt_pose
         else:
             transf = vo.get_pose(i)
             cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
+            pose_list.append(cur_pose)
             # from here we have the current global pose for i.
             #Here we need a function that makes the current local 3d points global.
             for local3D_p in vo.Q_1:
@@ -504,7 +523,6 @@ def main():
 
     print(global_3d_points)
 
-    print(len(q1_frame_indx))
     print(len(vo.tp_1))
     print(len(vo.tp_2))
     print(len(global_3d_points))
@@ -520,6 +538,48 @@ def main():
     plt.clabel("Z axies")
     plt.show()
 
+    print("frames: " + str(len(q1_frame_indx)))
+
+    for i in range(len(vo.tp_1)):
+        lister.append_keypoints(vo.tp_1[i], vo.tp_2[i], global_3d_points[i], q1_frame_indx[i])
+    lister.list_sort()
+
+    print(len(lister.BA_list))
+    print("BA_list is " + str(len(lister.BA_list)/len(vo.tp_1)) + " times longer than the amount of q's")
+    print(len(lister.BA_list)/4)
+    print(len(lister.coord_3d_list))
+    print("coord_3d_list is " + str(len(lister.coord_3d_list)/len(global_3d_points)) + " times longer than the amount of Q's")
+    print(len(lister.coord_3d_list)/2)
+    for i, x in enumerate(lister.BA_list):
+        if i > 50:
+            break
+        print(str(x) + '\t' + str(lister.coord_3d_list[i]))
+
+    opt_params = run_BA(q1_frame_indx[-1], lister.BA_list, lister.coord_3d_list, pose_list)
+    new_transformation = vo.estimate_new_pose(opt_params, lister.BA_list, lister.coord_3d_list)
+
+    for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
+        if i == frame_limit:
+            break
+        if i < 1:
+            cur_pose = gt_pose
+            new_poses.append(cur_pose)
+        else:
+            if i == len(new_transformation):
+                break
+            transf = new_transformation[i-1]
+            new_poses.append(transf)
+            cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
+            # from here we have the current global pose for i.
+            #Here we need a function that makes the current local 3d points global.
+
+        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
+        estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+
+    #for i, x in enumerate(vo.tp_1):
+    #    if i > 5:
+    #        break
+    #    print(str(x) + '\t' + str(vo.tp_2[i]) + '\t' + str(q1_frame_indx[i]))
     #print(len(vo.Q_1))
     #print(len(global_3d_points))
 
