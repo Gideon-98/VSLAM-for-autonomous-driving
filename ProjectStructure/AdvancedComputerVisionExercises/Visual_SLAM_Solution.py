@@ -9,7 +9,8 @@ from lib.visualization import plotting
 from lib.visualization.video import play_trip
 
 from tqdm import tqdm
-
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 class VisualOdometry():
     def __init__(self, data_dir):
@@ -389,7 +390,7 @@ class VisualOdometry():
         transformation_matrix (ndarray): The transformation matrix. Shape (4,4)
         """
         # Get the i-1'th image and i'th image
-        img1_l, img2_l = self.images_l[i - 1:i + 1] # why is this i-1 and i+1?
+        img1_l, img2_l = self.images_l[i - 1:i + 1] # for i = 1 then [0:2] i = 1, then keypoint frame, is 0.
 
         # Get teh tiled keypoints
         kp1_l = self.get_tiled_keypoints(img1_l, 10, 20)
@@ -470,13 +471,15 @@ def main():
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
     vo = VisualOdometry(data_dir)
     ###listing = FeatureDetector()
-    #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
+    play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
     gt_path = []
     estimated_path = []
-    global_3d_points = np.array([])
+    global_3d_points = []
     q1_frame_indx = np.array([])
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
+        if i == 2:
+                break
         if i < 1:
             cur_pose = gt_pose
         else:
@@ -484,18 +487,39 @@ def main():
             cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
             # from here we have the current global pose for i.
             #Here we need a function that makes the current local 3d points global.
-            for p in range(0,len(vo.Q_1)):
-                q1_frame_indx = np.append(q1_frame_indx,int(i))
-                global_3d_points = np.append(global_3d_points,[vo.Q_1[p][0] + cur_pose[0][3], vo.Q_1[p][1] + cur_pose[2][3], vo.Q_1[p][2]] + cur_pose[1][3]) # The curr pose is ordered x z y.
-        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
+            for local3D_p in vo.Q_1:
+                #q1_frame_indx = np.append(q1_frame_indx,int(i))
+                #Local_Q1_as_transf = np.array([[1,0,0,vo.Q_1[p][0]],[0,1,0,vo.Q_1[p][2]],[0,0,1,vo.Q_1[p][1]],[0,0,0,1]]) # changed from x,y,z to x,z,y
+                #Global_Q1_as_transf = np.matmul(cur_pose,Local_Q1_as_transf)
+                #global_3d_points = np.append(global_3d_points, [Global_Q1_as_transf[0,3],Global_Q1_as_transf[2,3],Global_Q1_as_transf[1,3]])
+                #global_3d_points = np.append(global_3d_points,[vo.Q_1[p][0] + cur_pose[0][3], vo.Q_1[p][1] + cur_pose[2][3], vo.Q_1[p][2]] + cur_pose[1][3]) # The curr pose is ordered x z y. The 3D point is deff x y z doe.
+                homogen_point = np.append(local3D_p, 1)
+                gobal3D_p = np.matmul(cur_pose, homogen_point)
+                global_3d_points.append(gobal3D_p[:3])
+        gt_path.append((gt_pose[0, 3], gt_pose[2, 3])) #
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
 
-    global_3d_points = np.reshape(global_3d_points,(-1,3))
+    global_3d_points = np.array(global_3d_points)
+
+
+    print(global_3d_points)
 
     print(len(q1_frame_indx))
     print(len(vo.tp_1))
     print(len(vo.tp_2))
     print(len(global_3d_points))
+    plt.plot(global_3d_points)
+
+
+    v = global_3d_points
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(v[:, 0], v[:, 1], v[:, 2])
+    plt.xlabel("x axies")
+    plt.ylabel("y axies")
+    plt.clabel("Z axies")
+    plt.show()
+
     #print(len(vo.Q_1))
     #print(len(global_3d_points))
 
