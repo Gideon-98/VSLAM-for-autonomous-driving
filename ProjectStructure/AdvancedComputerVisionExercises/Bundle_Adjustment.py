@@ -12,7 +12,7 @@ path = "ProjectStructure/AdvancedComputerVisionExercises/data/00_short/image_l"
 
 def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
     n_cams = int(frame_count)
-    n_Qs = int(BA_list[-1][1])
+    n_Qs = int(BA_list[-1][1] + 1)
     n_qs = len(BA_list)
 
     cam_idxs = np.empty(n_qs, dtype=int)
@@ -24,7 +24,7 @@ def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
     and 2D coordinates are parsed from the line and stored in the corresponding arrays
     """
     for i in range(n_qs):
-        Q_idx, cam_idx, x, y = BA_list[i]  # the number of cameras, points, and observations
+        cam_idx, Q_idx, x, y = BA_list[i]  # the number of cameras, points, and observations
         cam_idxs[i] = int(cam_idx)
         Q_idxs[i] = int(Q_idx)
         qs[i] = [float(x), float(y)]
@@ -35,27 +35,19 @@ def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
         three for translation
         three for intrinsic camera parameters (focal length and two distortion parameters)
     """
+    #print([dof[0][0][3], dof[0][1][3], dof[0][2][3]])
     cam_params = np.empty(n_cams * 9)
-    for i in range(n_cams, 9):
-        rot = cv2.Rodrigues(dof[i][0, :3][0, :3])
-        if i % 8 == 0:
-            cam_params[i] = rot[0]
-        if i % 8 == 1:
-            cam_params[i + 1] = rot[1]
-        if i % 8 == 2:
-            cam_params[i + 2] = rot[3]
-        if i % 8 == 3:
-            cam_params[i + 3] = dof[i][3, 0]
-        if i % 8 == 4:
-            cam_params[i + 4] = dof[i][3, 1]
-        if i % 8 == 5:
-            cam_params[i + 5] = dof[i][3, 2]
-        if i % 8 == 6:
-            cam_params[i + 6] = 707.0493000000
-        if i % 8 == 7:
-            cam_params[i + 7] = 604.0814000000
-        if i % 8 == 8:
-            cam_params[i + 8] = 180.5066000000
+    for i in range(0, n_cams * 9, 9):
+        rot, _ = cv2.Rodrigues(dof[int(i/9)][0:3,0:3])
+        cam_params[i] = rot[0]
+        cam_params[i + 1] = rot[1]
+        cam_params[i + 2] = rot[2]
+        cam_params[i + 3] = dof[int(i/9)][0][3]
+        cam_params[i + 4] = dof[int(i/9)][1][3]
+        cam_params[i + 5] = dof[int(i/9)][2][3]
+        cam_params[i + 6] = 707.0493000000
+        cam_params[i + 7] = 604.0814000000
+        cam_params[i + 8] = 180.5066000000
 
     cam_params = cam_params.reshape((n_cams, -1))
     """
@@ -63,16 +55,24 @@ def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
     the world frame
     """
     Qs = np.empty(n_Qs * 3)
-    for i in range(n_Qs, 3):
-        Qs[i] = coord_3D_list[i][0]
-        Qs[i + 1] = coord_3D_list[i][1]
-        Qs[i + 2] = coord_3D_list[i][2]
+    for i in range(n_Qs):
+        Qs[i * 3] = coord_3D_list[i][0]
+        Qs[i * 3 + 1] = coord_3D_list[i][1]
+        Qs[i * 3 + 2] = coord_3D_list[i][2]
     Qs = Qs.reshape((n_Qs, -1))
 
     """
 	function returns the camera parameters, point coordinates, camera indices, point indices, and measured 2D
 	coordinates as NumPy arrays
 	"""
+    #print(cam_params)
+    #print(Qs)
+    print("Qs: " + str(len(Qs)))
+    print("Q_idxs: " + str(len(Q_idxs)))
+    print("cam_params: " + str(len(cam_params)))
+    print("cam_idxs: " + str(len(cam_idxs)))
+    print("n_cam: " + str(cam_idxs[-1]))
+
     return cam_params, Qs, cam_idxs, Q_idxs, qs
 
 
@@ -343,6 +343,7 @@ def sparsity_matrix(n_cams, n_Qs, cam_idxs, Q_idxs):
 
     # Sparsity from 3D points
     for s in range(3):
+        print(s)
         sparse_mat[2 * i, n_cams * 9 + Q_idxs * 3 + s] = 1
         sparse_mat[2 * i + 1, n_cams * 9 + Q_idxs * 3 + s] = 1
 

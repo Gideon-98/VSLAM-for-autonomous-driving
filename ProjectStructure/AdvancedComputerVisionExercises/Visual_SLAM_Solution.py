@@ -484,7 +484,8 @@ def main():
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
     vo = VisualOdometry(data_dir)
     lister = ListBundler()
-    frame_limit = 50
+    frame_limit = 20
+    debug_printer = True
     ###listing = FeatureDetector()
     #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
@@ -495,7 +496,7 @@ def main():
     q1_frame_indx = np.array([])
     pose_list = []
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
-        if i == frame_limit:
+        if i == frame_limit + 1:
             break
         if i < 1:
             cur_pose = gt_pose
@@ -513,26 +514,28 @@ def main():
 
     global_3d_points = np.reshape(global_3d_points,(-1,3))
 
-    print(len(vo.tp_1))
-    print(len(vo.tp_2))
-    print(len(global_3d_points))
-    print("frames: " + str(len(q1_frame_indx)))
 
     for i in range(len(vo.tp_1)):
         lister.append_keypoints(vo.tp_1[i], vo.tp_2[i], global_3d_points[i], q1_frame_indx[i])
     lister.list_sort()
 
-    print(len(lister.BA_list))
-    print("BA_list is " + str(len(lister.BA_list)/len(vo.tp_1)) + " times longer than the amount of q's")
-    print(len(lister.BA_list)/4)
-    print(len(lister.coord_3d_list))
-    print("coord_3d_list is " + str(len(lister.coord_3d_list)/len(global_3d_points)) + " times longer than the amount of Q's")
-    print(len(lister.coord_3d_list)/2)
-    for i, x in enumerate(lister.BA_list):
-        if i > 50:
-            break
-        print(str(x) + '\t' + str(lister.coord_3d_list[i]))
+    if debug_printer:
+        print(len(vo.tp_1))
+        print(len(vo.tp_2))
+        print(len(global_3d_points))
+        print("frames: " + str(len(q1_frame_indx)))
+        print(len(lister.BA_list))
+        print("BA_list is " + str(len(lister.BA_list)/len(vo.tp_1)) + " times longer than the amount of q's")
+        print(len(lister.BA_list)/4)
+        print(len(lister.coord_3d_list))
+        print("coord_3d_list is " + str(len(lister.coord_3d_list)/len(global_3d_points)) + " times longer than the amount of Q's")
+        print(len(lister.coord_3d_list)/2)
+        for i, x in enumerate(lister.BA_list):
+            if i > 50:
+                break
+            print(str(x) + '\t' + str(lister.coord_3d_list[i]))
 
+    #print(pose_list[0])
     opt_params = run_BA(q1_frame_indx[-1], lister.BA_list, lister.coord_3d_list, pose_list)
     new_transformation = vo.estimate_new_pose(opt_params, lister.BA_list, lister.coord_3d_list)
 

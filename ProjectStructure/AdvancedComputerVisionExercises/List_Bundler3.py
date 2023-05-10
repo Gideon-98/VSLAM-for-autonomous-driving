@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 import cv2
 from sklearn.cluster import KMeans
@@ -13,7 +14,7 @@ class ListBundler:
     def __init__(self, n_clusters=200, n_features=500, future_iterations=6):
         self.BA_list = []
         self.coord_3d_list = []
-        self.last_stop = 0
+        self.last_stop = -1
 
     def append_instance(self, q2, q1, Q1):
         self.BA_list.append(q2)
@@ -28,6 +29,24 @@ class ListBundler:
         Q1_to_list = [Q1[0], Q1[1], Q1[2]]
         self.append_instance(q2_to_list, q1_to_list, Q1_to_list)
 
+    def duplicate_sort(self, temp_list):
+        prev_frame_idx = 0
+        for i, x in enumerate(tqdm(temp_list, unit="sorting")):
+
+            if temp_list[i][0] is not (temp_list[prev_frame_idx][0] + 1):
+                prev_frame_idx = (i - 1)
+
+            for j in range(prev_frame_idx, i):
+                correct_frame = (temp_list[i][0] == (temp_list[j][0] - 1))
+                same_x = (temp_list[i][2] == temp_list[j][2])
+                same_y = (temp_list[i][3] == temp_list[j][3])
+                if correct_frame and same_x and same_y:
+                    temp = temp_list[i]
+                    del temp_list[i]
+                    temp[1] = temp_list[j][1]
+                    temp_list.insert((j + 1), temp)
+
+        return temp_list
 
     def list_sort(self):
         temp_list = []
@@ -35,6 +54,8 @@ class ListBundler:
             temp_list.append([self.BA_list[i][0], self.BA_list[i][1], self.BA_list[i][2], self.BA_list[i][3],
                          self.coord_3d_list[i][0], self.coord_3d_list[i][1], self.coord_3d_list[i][2]])
 
+        temp_list = sorted(temp_list, key=lambda x: (x[1], x[0]))
+        temp_list = self.duplicate_sort(temp_list)
         temp_list = sorted(temp_list, key=lambda x: (x[1], x[0]))
 
         self.BA_list = []

@@ -76,6 +76,11 @@ def read_bal_data(path):
 	function returns the camera parameters, point coordinates, camera indices, point indices, and measured 2D
 	coordinates as NumPy arrays
 	"""
+	print("Qs: " + str(len(Qs)))
+	print("Q_idxs: " + str(len(Q_idxs)))
+	print("cam_params: " + str(len(cam_params)))
+	print("cam_idxs: " + str(len(cam_idxs)))
+	print("n_cam: " + str(cam_idxs[-1]))
 	return cam_params, Qs, cam_idxs, Q_idxs, qs
 
 
@@ -268,7 +273,7 @@ def objective(params, n_cams, n_Qs, cam_idxs, Q_idxs, qs):
 	
 	# Project the 3D points into the image planes
 	qs_proj = project(Qs[Q_idxs], cam_params[cam_idxs]) #resulting projecting points
-	
+
 	# Calculate the residuals
 	residuals = (qs_proj - qs).ravel()
 	"""
