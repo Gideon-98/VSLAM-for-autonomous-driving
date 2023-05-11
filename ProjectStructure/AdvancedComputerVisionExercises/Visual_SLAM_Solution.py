@@ -494,7 +494,6 @@ def main():
     estimated_path = []
     global_3d_points = []
     new_poses = []
-    global_3d_points = np.array([])
     q1_frame_indx = np.array([])
     pose_list = []
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
