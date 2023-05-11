@@ -485,9 +485,9 @@ def main():
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
     vo = VisualOdometry(data_dir)
     lister = ListBundler()
-    frame_limit = 50
+    frame_limit = 500
     ###listing = FeatureDetector()
-    play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
+    #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
     gt_path = []
     estimated_path = []
@@ -502,19 +502,19 @@ def main():
             cur_pose = gt_pose
         else:
             transf = vo.get_pose(i)
+            for local3D_p in vo.Q_1:
+                #print(local3D_p)
+                homogen_point = np.append([local3D_p[0],local3D_p[2],local3D_p[1]], 1)
+                gobal3D_p = np.matmul(cur_pose, homogen_point)
+                # Try and homogenize propper maybe
+                gobal3D_p = gobal3D_p[0:3]/gobal3D_p[3] # This might work to make the 3d points propper?
+                global_3d_points.append(gobal3D_p[:3])
+                q1_frame_indx = np.append(q1_frame_indx,i-1)
             cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
             pose_list.append(cur_pose)
             # from here we have the current global pose for i.
             #Here we need a function that makes the current local 3d points global.
-            for local3D_p in vo.Q_1:
-                #q1_frame_indx = np.append(q1_frame_indx,int(i))
-                #Local_Q1_as_transf = np.array([[1,0,0,vo.Q_1[p][0]],[0,1,0,vo.Q_1[p][2]],[0,0,1,vo.Q_1[p][1]],[0,0,0,1]]) # changed from x,y,z to x,z,y
-                #Global_Q1_as_transf = np.matmul(cur_pose,Local_Q1_as_transf)
-                #global_3d_points = np.append(global_3d_points, [Global_Q1_as_transf[0,3],Global_Q1_as_transf[2,3],Global_Q1_as_transf[1,3]])
-                #global_3d_points = np.append(global_3d_points,[vo.Q_1[p][0] + cur_pose[0][3], vo.Q_1[p][1] + cur_pose[2][3], vo.Q_1[p][2]] + cur_pose[1][3]) # The curr pose is ordered x z y. The 3D point is deff x y z doe.
-                homogen_point = np.append(local3D_p, 1)
-                gobal3D_p = np.matmul(cur_pose, homogen_point)
-                global_3d_points.append(gobal3D_p[:3])
+
         gt_path.append((gt_pose[0, 3], gt_pose[2, 3])) #
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
 
@@ -528,58 +528,26 @@ def main():
     print(len(global_3d_points))
     plt.plot(global_3d_points)
 
+    temp = np.array([])
 
-    v = global_3d_points
+    oldframe = 5
+    for i in range(len(q1_frame_indx)):
+        if q1_frame_indx[i] != oldframe:
+            oldframe = q1_frame_indx[i]
+            temp = np.append(temp,global_3d_points[i])
+
+    temp = np.reshape(temp,[-1,3])
+
+
+    v = temp
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(v[:, 0], v[:, 1], v[:, 2])
+    ax.scatter(v[:, 0], v[:, 2], v[:, 1])
     plt.xlabel("x axies")
     plt.ylabel("y axies")
     plt.clabel("Z axies")
     plt.show()
 
-    print("frames: " + str(len(q1_frame_indx)))
-
-    for i in range(len(vo.tp_1)):
-        lister.append_keypoints(vo.tp_1[i], vo.tp_2[i], global_3d_points[i], q1_frame_indx[i])
-    lister.list_sort()
-
-    print(len(lister.BA_list))
-    print("BA_list is " + str(len(lister.BA_list)/len(vo.tp_1)) + " times longer than the amount of q's")
-    print(len(lister.BA_list)/4)
-    print(len(lister.coord_3d_list))
-    print("coord_3d_list is " + str(len(lister.coord_3d_list)/len(global_3d_points)) + " times longer than the amount of Q's")
-    print(len(lister.coord_3d_list)/2)
-    for i, x in enumerate(lister.BA_list):
-        if i > 50:
-            break
-        print(str(x) + '\t' + str(lister.coord_3d_list[i]))
-
-    opt_params = run_BA(q1_frame_indx[-1], lister.BA_list, lister.coord_3d_list, pose_list)
-    new_transformation = vo.estimate_new_pose(opt_params, lister.BA_list, lister.coord_3d_list)
-
-    for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
-        if i == frame_limit:
-            break
-        if i < 1:
-            cur_pose = gt_pose
-            new_poses.append(cur_pose)
-        else:
-            if i == len(new_transformation):
-                break
-            transf = new_transformation[i-1]
-            new_poses.append(transf)
-            cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
-            # from here we have the current global pose for i.
-            #Here we need a function that makes the current local 3d points global.
-
-        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
-        estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
-
-    #for i, x in enumerate(vo.tp_1):
-    #    if i > 5:
-    #        break
-    #    print(str(x) + '\t' + str(vo.tp_2[i]) + '\t' + str(q1_frame_indx[i]))
     #print(len(vo.Q_1))
     #print(len(global_3d_points))
 
