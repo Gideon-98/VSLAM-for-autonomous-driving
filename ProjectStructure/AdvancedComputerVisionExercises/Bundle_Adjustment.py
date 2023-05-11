@@ -35,7 +35,6 @@ def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
         three for translation
         three for intrinsic camera parameters (focal length and two distortion parameters)
     """
-    #print([dof[0][0][3], dof[0][1][3], dof[0][2][3]])
     cam_params = np.empty(n_cams * 9)
     for i in range(0, n_cams * 9, 9):
         rot, _ = cv2.Rodrigues(dof[int(i/9)][0:3,0:3])

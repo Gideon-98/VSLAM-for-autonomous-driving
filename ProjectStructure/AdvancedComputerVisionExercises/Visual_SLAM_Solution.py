@@ -514,7 +514,6 @@ def main():
 
     global_3d_points = np.reshape(global_3d_points,(-1,3))
 
-
     for i in range(len(vo.tp_1)):
         lister.append_keypoints(vo.tp_1[i], vo.tp_2[i], global_3d_points[i], q1_frame_indx[i])
     lister.list_sort()
