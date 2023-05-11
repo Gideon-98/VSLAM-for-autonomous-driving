@@ -9,7 +9,8 @@ from lib.visualization import plotting
 from lib.visualization.video import play_trip
 
 from tqdm import tqdm
-
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 class VisualOdometry():
     def __init__(self, data_dir):
@@ -389,7 +390,7 @@ class VisualOdometry():
         transformation_matrix (ndarray): The transformation matrix. Shape (4,4)
         """
         # Get the i-1'th image and i'th image
-        img1_l, img2_l = self.images_l[i - 1:i + 1] # why is this i-1 and i+1?
+        img1_l, img2_l = self.images_l[i - 1:i + 1] # for i = 1 then [0:2] i = 1, then keypoint frame, is 0.
 
         # Get teh tiled keypoints
         kp1_l = self.get_tiled_keypoints(img1_l, 10, 20)
@@ -491,6 +492,7 @@ def main():
 
     gt_path = []
     estimated_path = []
+    global_3d_points = []
     new_poses = []
     global_3d_points = np.array([])
     q1_frame_indx = np.array([])
@@ -502,17 +504,26 @@ def main():
             cur_pose = gt_pose
         else:
             transf = vo.get_pose(i)
+            for local3D_p in vo.Q_1:
+                #print(local3D_p)
+                homogen_point = np.append([local3D_p[0],local3D_p[2],local3D_p[1]], 1)
+                gobal3D_p = np.matmul(cur_pose, homogen_point)
+                # Try and homogenize propper maybe
+                gobal3D_p = gobal3D_p[0:3]/gobal3D_p[3] # This might work to make the 3d points propper?
+                global_3d_points.append(gobal3D_p[:3])
+                q1_frame_indx = np.append(q1_frame_indx,i-1)
             cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
             pose_list.append(cur_pose)
             # from here we have the current global pose for i.
             #Here we need a function that makes the current local 3d points global.
-            for p in range(0,len(vo.Q_1)):
-                q1_frame_indx = np.append(q1_frame_indx,int(i))
-                global_3d_points = np.append(global_3d_points,[vo.Q_1[p][0] + cur_pose[0][3], vo.Q_1[p][1] + cur_pose[2][3], vo.Q_1[p][2]] + cur_pose[1][3]) # The curr pose is ordered x z y.
-        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
+
+        gt_path.append((gt_pose[0, 3], gt_pose[2, 3])) #
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
 
-    global_3d_points = np.reshape(global_3d_points,(-1,3))
+    global_3d_points = np.array(global_3d_points)
+
+
+    print(global_3d_points)
 
     for i in range(len(vo.tp_1)):
         lister.append_keypoints(vo.tp_1[i], vo.tp_2[i], global_3d_points[i], q1_frame_indx[i])
@@ -534,6 +545,18 @@ def main():
                 break
             print(str(x) + '\t' + str(lister.coord_3d_list[i]))
 
+    plt.plot(global_3d_points)
+
+    temp = np.array([])
+
+    oldframe = 5
+    for i in range(len(q1_frame_indx)):
+        if q1_frame_indx[i] != oldframe:
+            oldframe = q1_frame_indx[i]
+            temp = np.append(temp,global_3d_points[i])
+
+    temp = np.reshape(temp,[-1,3])
+
     #print(pose_list[0])
     opt_params = run_BA(q1_frame_indx[-1], lister.BA_list, lister.coord_3d_list, pose_list)
     new_transformation = vo.estimate_new_pose(opt_params, lister.BA_list, lister.coord_3d_list)
@@ -553,8 +576,14 @@ def main():
             # from here we have the current global pose for i.
             #Here we need a function that makes the current local 3d points global.
 
-        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
-        estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+    v = temp
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(v[:, 0], v[:, 2], v[:, 1])
+    plt.xlabel("x axies")
+    plt.ylabel("y axies")
+    plt.clabel("Z axies")
+    plt.show()
 
     #for i, x in enumerate(vo.tp_1):
     #    if i > 5:
