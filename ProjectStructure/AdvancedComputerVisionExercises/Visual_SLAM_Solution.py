@@ -495,8 +495,8 @@ def main():
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
     vo = VisualOdometry(data_dir)
     lister = ListBundler()
-    frame_limit = 50
-    debug_printer = True
+    frame_limit = 501
+    debug_printer = False
     ###listing = FeatureDetector()
     #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
@@ -565,7 +565,7 @@ def main():
             oldframe = q1_frame_indx[i]
             temp = np.append(temp,global_3d_points[i])
 
-    temp = np.reshape(temp,[-1,3])
+    temp = np.reshape(temp, [-1, 3])
 
     #print(pose_list[0])
     opt_params = run_BA(int(q1_frame_indx[-1]), lister.BA_list, lister.coord_3d_list, pose_list)

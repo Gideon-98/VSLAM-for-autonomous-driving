@@ -186,18 +186,15 @@ def sparsity_matrix(n_cams, n_Qs, cam_idxs, Q_idxs):
 
 
 def bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs, qs, sparse_mat):
-
     # Stack the camera parameters and the 3D points
     params = np.hstack((cam_params.ravel(), Qs.ravel()))
-    cam_params_small, Qs_small, cam_idxs_small, Q_idxs_small, qs_small = shrink_problem(1000, cam_params, Qs, cam_idxs,
-                                                                                        Q_idxs, qs)
 
     # Save the initial residuals
     residual_init = objective(params, cam_params.shape[0], Qs.shape[0], cam_idxs, Q_idxs, qs)
 
     # Perform the least_squares optimization with sparsity
-    res = least_squares(objective, params, verbose=2, x_scale='jac', ftol=1e-4, method='trf', max_nfev=50,
-                        args=(cam_params.shape[0], Qs.shape[0], cam_idxs, Q_idxs, qs))
+    res = least_squares(objective, params, jac_sparsity=sparse_mat, verbose=2, x_scale='jac', ftol=1e-4, method='trf',
+                        max_nfev=50, args=(cam_params.shape[0], Qs.shape[0], cam_idxs, Q_idxs, qs))
 
     # Get the residuals at the solution and the solution
     residuals_solu = res.fun
@@ -210,23 +207,32 @@ def run_BA(frame_count, BA_list, coord_3D_list, dof):
     cam_params_small, Qs_small, cam_idxs_small, Q_idxs_small, qs_small = shrink_problem(1000, cam_params, Qs, cam_idxs,
                                                                                         Q_idxs, qs)
 
+    n_cams_small = cam_params_small.shape[0]
+    n_Qs_small = Qs_small.shape[0]
+    print("n_cameras: {}".format(n_cams_small))
+    print("n_points: {}".format(n_Qs_small))
+    print("Total number of parameters: {}".format(9 * n_cams_small + 3 * n_Qs_small))
+    print("Total number of residuals: {}".format(2 * qs_small.shape[0]))
+    small_residual_init, small_residual_minimized, opt_params = bundle_adjustment(cam_params_small, Qs_small,
+                                                                                  cam_idxs_small,
+                                                                                  Q_idxs_small, qs_small)
+
     n_cams = cam_params.shape[0]
     n_Qs = Qs.shape[0]
     print("n_cameras: {}".format(n_cams))
     print("n_points: {}".format(n_Qs))
     print("Total number of parameters: {}".format(9 * n_cams + 3 * n_Qs))
     print("Total number of residuals: {}".format(2 * qs.shape[0]))
-    small_residual_init, small_residual_minimized, opt_params = bundle_adjustment(cam_params_small, Qs_small,
-                                                                                  cam_idxs_small,
-                                                                                  Q_idxs_small, qs_small)
     # residual_init, residual_minimized, opt_params = bundle_adjustment(cam_params, Qs, cam_idxs, Q_idxs, qs)
     sparse_mat = sparsity_matrix(n_cams, n_Qs, cam_idxs, Q_idxs)
-    plot_sparsity(sparse_mat)
+    print("Sparse Mat Done")
+    #plot_sparsity(sparse_mat)
     residual_init, residual_minimized, opt_params = bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs,
                                                                                     qs, sparse_mat)
+    print("BA Done")
+    #plot_residual_results(qs_small, small_residual_init, small_residual_minimized, qs, residual_init, residual_minimized)
 
-    plot_residual_results(qs_small, small_residual_init, small_residual_minimized, qs, residual_init, residual_minimized)
-
+    print("Hello")
     return opt_params
 
 

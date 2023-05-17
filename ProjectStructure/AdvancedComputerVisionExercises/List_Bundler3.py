@@ -31,28 +31,49 @@ class ListBundler:
 
     def duplicate_and_sort(self, temp_list):
         temp_list = sorted(temp_list, key=lambda x: (x[1], x[0]))
-        for i, x in enumerate(tqdm(temp_list, unit="sorting")):
+        match_counter = 0
+        hit_counter = 0
+        prev_frame_idx = 0
+        cur_frame_idx = 1
+        original_length = len(temp_list)
+
+        for i, x in enumerate(temp_list):
+            if temp_list[i-1][0] == temp_list[i][0]:
+                cur_frame_idx = i+1
+                print("cur_frame_idx: " + str(cur_frame_idx))
+                for i in range(cur_frame_idx-5, cur_frame_idx+5):
+                    print(i, temp_list[i])
+                break
+
+        for i, x in enumerate(tqdm(temp_list, initial=cur_frame_idx, unit="sorting")):
             if temp_list[i][1] == temp_list[i - 1][1]:
-                for j in range(len(temp_list)):
-                    if j == i:
-                        break
-                    correct_frame = (temp_list[j][0] == temp_list[i][0] - 1)
+                if temp_list[i-1][0] == temp_list[i-2][0]:
+                    prev_frame_idx = cur_frame_idx
+                    cur_frame_idx = i
+
+                for j in range(prev_frame_idx, i):
                     actual_frame = (temp_list[j][1] == temp_list[j - 1][1])
+                    correct_frame = (temp_list[j][0] == temp_list[i][0] - 1)
                     if correct_frame and actual_frame:
-                        same_x = (temp_list[i][2] == temp_list[j][2])
-                        same_y = (temp_list[i][3] == temp_list[j][3])
+                        same_x = (temp_list[i-1][2] == temp_list[j][2])
+                        same_y = (temp_list[i-1][3] == temp_list[j][3])
                         if same_x and same_y:
-                            print("Match!")
+                            #print("Match!")
+                            #match_counter += 1
+                            #print(match_counter)
                             temp_list[i][1] = temp_list[j][1]
                             temp_list[i - 1][1] = temp_list[j][1]
-
+                            del temp_list[j]
                             for k in range(i + 1, len(temp_list)):
                                 temp_list[k][1] = temp_list[k][1] - 1
 
-
-
         temp_list = sorted(temp_list, key=lambda x: (x[1], x[0]))
-        self.unique_counter(temp_list)
+        new_length = len(temp_list)
+        reduction = original_length - new_length
+        ratio = new_length/original_length
+        print("Old Size: " + str(original_length) + ",  New Size: " + str(new_length))
+        print("List Size Reduction: " + str(reduction))
+        print("Ratio: " + str(ratio) + " times smaller")
 
         return temp_list
 
@@ -70,17 +91,3 @@ class ListBundler:
         for i in range(len(temp_list)):
             self.BA_list.append([temp_list[i][0], temp_list[i][1], temp_list[i][2], temp_list[i][3]])
             self.coord_3d_list.append([temp_list[i][4], temp_list[i][5], temp_list[i][6]])
-
-    def unique_counter(self, temp_list):
-        last_new_Q = 0
-        n_groups = 0
-        q_counter = 0
-        for i, x in enumerate(temp_list):
-            q_counter += 1
-            if x[1] is not last_new_Q:
-                last_new_Q = x[1]
-                if q_counter > 2:
-                    n_groups += 1
-                q_counter = 1
-
-        print("# of points seen at least 3 times: {}".format(n_groups))
