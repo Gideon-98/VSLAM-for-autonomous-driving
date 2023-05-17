@@ -419,20 +419,30 @@ class VisualOdometry():
         return transformation_matrix
     
     def estimate_new_pose (self, opt_params, q1_frame_index, BA_list, coord_3d_list):
-        cam_idx = []
-        Q_idx = []
-        qs = []
-        Qs = []
+        #n_cams = int(q1_frame_index[-1] - 1)
+        n_Qs = int(BA_list[-1][1] + 1)
+        n_qs = len(BA_list)
+
+        cam_idxs = np.empty(n_qs, dtype=int)
+        Q_idxs = np.empty(n_qs, dtype=int)
+        qs = np.empty((n_qs, 2))
+
+        #cam_idx = []
+        #Q_idx = []
+        #qs = []
+        #Qs = []
 
         for i in range(len(BA_list)):
-            cam_idx.append(BA_list[i][0])
-            Q_idx.append(BA_list[i][1])
-            qs.append([BA_list[i][2], BA_list[i][3]])
+            cam_idx, Q_idx, x, y = BA_list[i]  # the number of cameras, points, and observations
+            cam_idxs[i] = int(cam_idx)
+            Q_idxs[i] = int(Q_idx)
+            qs[i] = [float(x), float(y)]
 
-        for x in coord_3d_list:
-            Qs.append(x[0])
-            Qs.append(x[1])
-            Qs.append(x[2])
+        Qs = np.empty(n_Qs * 3)
+        for i in range(n_Qs):
+            Qs[i * 3] = coord_3d_list[i][0]
+            Qs[i * 3 + 2] = coord_3d_list[i][1]
+            Qs[i * 3 + 1] = coord_3d_list[i][2]
 
         # cam_params = opt_params[:n_cams * 9]
         # cam_params = np.array(cam_params)
@@ -441,9 +451,9 @@ class VisualOdometry():
         adjusted_transformations = []
         opt_3Dpoints = opt_params
         opt_3Dpoints = np.array(opt_3Dpoints)
-        opt_3Dpoints = opt_3Dpoints.reshape((len(coord_3d_list), -1)) #Make the new optimised points into a Q_n*3 matrix
+        opt_3Dpoints = opt_3Dpoints.reshape((-1, 3)) #Make the new optimised points into a Q_n*3 matrix
     
-        for i in range(q1_frame_index[-1] + 1): # I think this is for each frame. So tp_1.len() or something. This was +1 for some reason
+        for i in range(int(q1_frame_index[-1])): # I think this is for each frame. So tp_1.len() or something. This was +1 for some reason
             tmp_q1 = []
             tmp_q2 = []
             tmp_Q1 = []
@@ -452,11 +462,11 @@ class VisualOdometry():
             for idx in range(len(q1_frame_index)): # For the number of 2d points.
                 if q1_frame_index[idx] == i:  # is the frame'idx = to the i frame
                     tmp_q1.append(self.tp_1[idx])
-                    tmp_Q1.append(opt_3Dpoints[Q_idx[idx]]) # It seems like the 3D points are globally indexed, hopefully they match the order of the 2D points,
+                    tmp_Q1.append(opt_3Dpoints[Q_idxs[idx]]) # It seems like the 3D points are globally indexed, hopefully they match the order of the 2D points,
             
                 if q1_frame_index[idx] == i + 1: # If inx = i plus 1, it logs temp q2
                     tmp_q2.append(self.tp_1[idx])
-                    tmp_Q2.append(opt_3Dpoints[Q_idx[idx]])
+                    tmp_Q2.append(opt_3Dpoints[Q_idxs[idx]])
         
             if (len(tmp_q1) > len(tmp_q2)):
                 tmp_q1 = tmp_q1[:len(tmp_q2)]
@@ -485,13 +495,14 @@ def main():
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
     vo = VisualOdometry(data_dir)
     lister = ListBundler()
-    frame_limit = 20
+    frame_limit = 50
     debug_printer = True
     ###listing = FeatureDetector()
     #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
     gt_path = []
     estimated_path = []
+    estimated_better_path = []
     global_3d_points = []
     new_poses = []
     q1_frame_indx = np.array([])
@@ -510,7 +521,7 @@ def main():
                 # Try and homogenize propper maybe
                 gobal3D_p = gobal3D_p[0:3]/gobal3D_p[3] # This might work to make the 3d points propper?
                 global_3d_points.append(gobal3D_p[:3])
-                q1_frame_indx = np.append(q1_frame_indx,i-1)
+                q1_frame_indx = np.append(q1_frame_indx,i)
             cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
             pose_list.append(cur_pose)
             # from here we have the current global pose for i.
@@ -557,11 +568,11 @@ def main():
     temp = np.reshape(temp,[-1,3])
 
     #print(pose_list[0])
-    opt_params = run_BA(q1_frame_indx[-1], lister.BA_list, lister.coord_3d_list, pose_list)
-    new_transformation = vo.estimate_new_pose(opt_params, lister.BA_list, lister.coord_3d_list)
+    opt_params = run_BA(int(q1_frame_indx[-1]), lister.BA_list, lister.coord_3d_list, pose_list)
+    new_transformation = vo.estimate_new_pose(opt_params, q1_frame_indx, lister.BA_list, lister.coord_3d_list)
 
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
-        if i == frame_limit:
+        if i == frame_limit + 1:
             break
         if i < 1:
             cur_pose = gt_pose
@@ -574,6 +585,7 @@ def main():
             cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
             # from here we have the current global pose for i.
             #Here we need a function that makes the current local 3d points global.
+        estimated_better_path.append((cur_pose[0, 3], cur_pose[2, 3]))
 
     v = temp
     fig = plt.figure()
@@ -602,7 +614,8 @@ def main():
 
     plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
                              file_out=os.path.basename(data_dir) + ".html")
-
+    plotting.visualize_paths(gt_path, estimated_better_path, "Stereo Visual Odometry",
+                             file_out=os.path.basename(data_dir) + ".html")
 
 if __name__ == "__main__":
     main()
