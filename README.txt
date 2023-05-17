@@ -11,6 +11,17 @@ Outcomes:
 
 ▶ Optional: use of LIDAR and/or stereo information
 
+Requirements:
+▶The project should be documented in a report of maximum 50 pages
+
+▶The report should clearly state who has contributed to each section.
+
+▶An oral exam is conducted based on the report (pass/fail)).
+
+▶The project should be demonstrated on May 12. Details follow later.✅
+
+▶The report should be handed in on May 26 at 12:00.
+
 
 Current Steps :
 
