@@ -487,7 +487,6 @@ class VisualOdometry():
     
     #def plot_transformations ()
 
-
 def main():
     data_dir = 'data/00_short'  # Try KITTI sequence 00
     # data_dir = 'data/00'  # Try KITTI sequence 00

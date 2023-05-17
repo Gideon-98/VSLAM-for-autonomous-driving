@@ -10,7 +10,6 @@ from sklearn.neighbors import NearestNeighbors
 
 
 class ListBundler:
-
     def __init__(self, n_clusters=200, n_features=500, future_iterations=6):
         self.BA_list = []
         self.coord_3d_list = []

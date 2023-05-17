@@ -184,7 +184,6 @@ def sparsity_matrix(n_cams, n_Qs, cam_idxs, Q_idxs):
 
     return sparse_mat
 
-
 def bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs, qs, sparse_mat):
     # Stack the camera parameters and the 3D points
     params = np.hstack((cam_params.ravel(), Qs.ravel()))
