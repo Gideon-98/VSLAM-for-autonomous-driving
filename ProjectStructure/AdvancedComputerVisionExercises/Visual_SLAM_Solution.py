@@ -494,8 +494,8 @@ def main():
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
     vo = VisualOdometry(data_dir)
     lister = ListBundler()
-    frame_limit = 501
-    debug_printer = False
+    frame_limit = 50
+    debug_printer = True
     ###listing = FeatureDetector()
     #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
@@ -520,7 +520,7 @@ def main():
                 # Try and homogenize propper maybe
                 gobal3D_p = gobal3D_p[0:3]/gobal3D_p[3] # This might work to make the 3d points propper?
                 global_3d_points.append(gobal3D_p[:3])
-                q1_frame_indx = np.append(q1_frame_indx,i)
+                q1_frame_indx = np.append(q1_frame_indx,i-1)
             cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
             pose_list.append(cur_pose)
             # from here we have the current global pose for i.

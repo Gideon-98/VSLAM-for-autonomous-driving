@@ -23,7 +23,7 @@ class ListBundler:
 
     def append_keypoints(self, q1, q2, Q1, idx):
         self.last_stop += 1
-        q2_to_list = [int(idx - 1), self.last_stop, q2[0], q2[1]]
+        q2_to_list = [int(idx + 1), self.last_stop, q2[0], q2[1]]
         q1_to_list = [int(idx), self.last_stop, q1[0], q1[1]]
         Q1_to_list = [Q1[0], Q1[1], Q1[2]]
         self.append_instance(q2_to_list, q1_to_list, Q1_to_list)
