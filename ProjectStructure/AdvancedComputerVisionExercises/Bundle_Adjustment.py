@@ -215,7 +215,7 @@ def run_BA(frame_count, BA_list, coord_3D_list, dof):
     print("Total number of residuals: {}".format(2 * qs_small.shape[0]))
     small_residual_init, small_residual_minimized, opt_params = bundle_adjustment(cam_params_small, Qs_small,
                                                                                   cam_idxs_small,
-                                                                                  Q_idxs_small, qs_small)
+                        hallo                                                            Q_idxs_small, qs_small)
     '''
     n_cams = cam_params.shape[0]
     n_Qs = Qs.shape[0]
