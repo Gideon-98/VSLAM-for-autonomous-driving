@@ -410,11 +410,11 @@ class VisualOdometry():
     
     def estimate_new_pose (self, opt_params, q1_frame_index, BA_list, coord_3d_list):
         #n_cams = int(q1_frame_index[-1] - 1)
-        n_Qs = int(BA_list[-1][1] + 1)
-        n_qs = len(BA_list)
+        n_Qs = int(BA_list[-1][1] + 1) #Number of uniqe 3D points
+        n_qs = len(BA_list) # number of 2D points
 
-        cam_idxs = np.empty(n_qs, dtype=int)
-        Q_idxs = np.empty(n_qs, dtype=int)
+        frame_idxs = np.empty(n_qs, dtype=int) #Frame index
+        Q_idxs = np.empty(n_qs, dtype=int) # What 3D point does belongs to this index
         qs = np.empty((n_qs, 2))
 
         #cam_idx = []
@@ -422,9 +422,9 @@ class VisualOdometry():
         #qs = []
         #Qs = []
 
-        for i in range(len(BA_list)):
-            cam_idx, Q_idx, x, y = BA_list[i]  # the number of cameras, points, and observations
-            cam_idxs[i] = int(cam_idx)
+        for i in range(len(BA_list)): #For each 2D point
+            frame_idx, Q_idx, x, y = BA_list[i]  # Frame, uniqe point number, x and y
+            frame_idxs[i] = int(frame_idx)
             Q_idxs[i] = int(Q_idx)
             qs[i] = [float(x), float(y)]
 
@@ -443,12 +443,11 @@ class VisualOdometry():
         opt_3Dpoints = np.array(opt_3Dpoints)
         opt_3Dpoints = opt_3Dpoints.reshape((-1, 3)) #Make the new optimised points into a Q_n*3 matrix
     
-        for i in range(int(q1_frame_index[-1])): # I think this is for each frame. So tp_1.len() or something. This was +1 for some reason
+        for i in range(int(q1_frame_index[-1])+1): # I think this is for each frame. So tp_1.len() or something. This was +1 for some reason
             tmp_q1 = []
             tmp_q2 = []
             tmp_Q1 = []
             tmp_Q2 = []
-        
             for idx in range(len(q1_frame_index)): # For the number of 2d points.
                 if q1_frame_index[idx] == i:  # is the frame'idx = to the i frame
                     tmp_q1.append(self.tp_1[idx])
@@ -457,6 +456,10 @@ class VisualOdometry():
                 if q1_frame_index[idx] == i + 1: # If inx = i plus 1, it logs temp q2
                     tmp_q2.append(self.tp_1[idx])
                     tmp_Q2.append(opt_3Dpoints[Q_idxs[idx]])
+
+                if int(q1_frame_index[-1]) == i:
+                    tmp_q2.append(self.tp_2[idx])
+                    tmp_Q2.append(opt_3Dpoints[Q_idxs[idx-1]])
         
             if (len(tmp_q1) > len(tmp_q2)):
                 tmp_q1 = tmp_q1[:len(tmp_q2)]
@@ -569,8 +572,6 @@ def main():
             cur_pose = gt_pose
             new_poses.append(cur_pose)
         else:
-            if i == len(new_transformation):
-                break
             transf = new_transformation[i-1]
             new_poses.append(transf)
             cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
