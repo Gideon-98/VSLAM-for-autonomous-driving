@@ -16,8 +16,8 @@ class ListBundler:
         self.last_stop = -1
 
     def append_instance(self, q2, q1, Q1):
-        self.BA_list.append(q2)
         self.BA_list.append(q1)
+        self.BA_list.append(q2)
         self.coord_3d_list.append(Q1)
         self.coord_3d_list.append(Q1)
 
@@ -35,6 +35,7 @@ class ListBundler:
         prev_frame_idx = 0
         cur_frame_idx = 1
         original_length = len(temp_list)
+        old_unique_points = temp_list[-1][1]
 
         for i, x in enumerate(temp_list):
             if temp_list[i-1][0] == temp_list[i][0]:
@@ -45,32 +46,34 @@ class ListBundler:
                 break
 
         for i, x in enumerate(tqdm(temp_list, initial=cur_frame_idx, unit="sorting")):
-            if temp_list[i][1] == temp_list[i - 1][1]:
-                if temp_list[i-1][0] == temp_list[i-2][0]:
+            if temp_list[i][1] == temp_list[i - 1][1]: #chek if i is on q2
+                if temp_list[i-1][0] == temp_list[i-2][0]: #checking for splits
                     prev_frame_idx = cur_frame_idx
                     cur_frame_idx = i
 
-                for j in range(prev_frame_idx, i):
-                    actual_frame = (temp_list[j][1] == temp_list[j - 1][1])
-                    correct_frame = (temp_list[j][0] == temp_list[i][0] - 1)
+
+
+                for j in range(prev_frame_idx, i): # it goes from 2_frame_index to i
+                    actual_frame = (temp_list[j][1] == temp_list[j - 1][1]) #check if j points to a q2 elemnt
+                    correct_frame = (temp_list[j][0] == temp_list[i][0] - 1) #check if q2 element
                     if correct_frame and actual_frame:
-                        same_x = (temp_list[i-1][2] == temp_list[j][2])
-                        same_y = (temp_list[i-1][3] == temp_list[j][3])
+                        same_x = (temp_list[i-1][2] == temp_list[j][2]) # check if q1 for i x is the same as q2 for j x
+                        same_y = (temp_list[i-1][3] == temp_list[j][3]) #
                         if same_x and same_y:
                             #print("Match!")
                             #match_counter += 1
                             #print(match_counter)
                             temp_list[i][1] = temp_list[j][1]
                             temp_list[i - 1][1] = temp_list[j][1]
-                            del temp_list[j]
-                            for k in range(i + 1, len(temp_list)):
+                            #del temp_list[j]
+                            for k in range(i + 1, len(temp_list)): #Update uniqe point index.
                                 temp_list[k][1] = temp_list[k][1] - 1
 
         temp_list = sorted(temp_list, key=lambda x: (x[1], x[0]))
-        new_length = len(temp_list)
-        reduction = original_length - new_length
-        ratio = new_length/original_length
-        print("Old Size: " + str(original_length) + ",  New Size: " + str(new_length))
+        new_length = temp_list[-1][1]
+        reduction = old_unique_points - new_length
+        ratio = new_length/old_unique_points
+        print("Old Size: " + str(old_unique_points) + ",  New Size: " + str(new_length))
         print("List Size Reduction: " + str(reduction))
         print("Ratio: " + str(ratio) + " times smaller")
 

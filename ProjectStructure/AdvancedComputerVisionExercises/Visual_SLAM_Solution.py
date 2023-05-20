@@ -378,17 +378,7 @@ class VisualOdometry():
         return transformation_matrix
 
     def get_pose(self, i):
-        """
-        Calculates the transformation matrix for the i'th frame
 
-        Parameters
-        ----------
-        i (int): Frame index
-
-        Returns
-        -------
-        transformation_matrix (ndarray): The transformation matrix. Shape (4,4)
-        """
         # Get the i-1'th image and i'th image
         img1_l, img2_l = self.images_l[i - 1:i + 1] # for i = 1 then [0:2] i = 1, then keypoint frame, is 0.
 
@@ -494,8 +484,8 @@ def main():
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
     vo = VisualOdometry(data_dir)
     lister = ListBundler()
-    frame_limit = 50
-    debug_printer = True
+    frame_limit = 20
+    debug_printer = False
     ###listing = FeatureDetector()
     #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
@@ -522,7 +512,7 @@ def main():
                 global_3d_points.append(gobal3D_p[:3])
                 q1_frame_indx = np.append(q1_frame_indx,i-1)
             cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
-            pose_list.append(cur_pose)
+        pose_list.append(cur_pose)
             # from here we have the current global pose for i.
             #Here we need a function that makes the current local 3d points global.
 
@@ -530,7 +520,9 @@ def main():
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
 
     global_3d_points = np.array(global_3d_points)
+    print("Estimated path length, should be equal to number of poses",len(estimated_path))
 
+    print("q_1 frame index, should be equal to poses minus one",q1_frame_indx[-1])
 
     print(global_3d_points)
 
@@ -567,7 +559,7 @@ def main():
     temp = np.reshape(temp, [-1, 3])
 
     #print(pose_list[0])
-    opt_params = run_BA(int(q1_frame_indx[-1]), lister.BA_list, lister.coord_3d_list, pose_list)
+    opt_params = run_BA(int(q1_frame_indx[-1] + 2), lister.BA_list, lister.coord_3d_list, pose_list)
     new_transformation = vo.estimate_new_pose(opt_params, q1_frame_indx, lister.BA_list, lister.coord_3d_list)
 
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):

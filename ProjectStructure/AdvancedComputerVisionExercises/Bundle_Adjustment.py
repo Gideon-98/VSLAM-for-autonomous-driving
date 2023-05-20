@@ -9,7 +9,7 @@ path = "ProjectStructure/AdvancedComputerVisionExercises/data/00_short/image_l"
 
 
 def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
-    n_cams = int(frame_count + 1)
+    n_cams = int(frame_count)
     n_Qs = int(BA_list[-1][1] + 1)
     n_qs = len(BA_list)
 
@@ -114,6 +114,7 @@ def project(Qs, cam_params):
 
 def objective(params, n_cams, n_Qs, cam_idxs, Q_idxs, qs):
 
+
     # Should return the residuals consisting of the difference between the observations qs and the reporjected points
     # Params is passed from bundle_adjustment() and contains the camera parameters and 3D points
     # project() expects an arrays of shape (len(qs), 3) indexed using Q_idxs and (len(qs), 9) indexed using cam_idxs
@@ -205,7 +206,7 @@ def run_BA(frame_count, BA_list, coord_3D_list, dof):
     cam_params, Qs, cam_idxs, Q_idxs, qs = read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof)
     cam_params_small, Qs_small, cam_idxs_small, Q_idxs_small, qs_small = shrink_problem(1000, cam_params, Qs, cam_idxs,
                                                                                         Q_idxs, qs)
-
+    '''
     n_cams_small = cam_params_small.shape[0]
     n_Qs_small = Qs_small.shape[0]
     print("n_cameras: {}".format(n_cams_small))
@@ -215,7 +216,7 @@ def run_BA(frame_count, BA_list, coord_3D_list, dof):
     small_residual_init, small_residual_minimized, opt_params = bundle_adjustment(cam_params_small, Qs_small,
                                                                                   cam_idxs_small,
                                                                                   Q_idxs_small, qs_small)
-
+    '''
     n_cams = cam_params.shape[0]
     n_Qs = Qs.shape[0]
     print("n_cameras: {}".format(n_cams))
