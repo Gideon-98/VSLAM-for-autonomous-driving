@@ -492,7 +492,7 @@ class VisualOdometry():
         adjusted_transformations = []
 
         for i in range(len(opt_params)):
-            local_homo = np.matmul(-pose_list[int(q1_frame_index[i])], [opt_params[i][0],opt_params[i][1],opt_params[i][2],1])
+            local_homo = np.matmul(-pose_list[int(q1_frame_index[i])], [opt_params[i][0],opt_params[i][2],opt_params[i][1],1])
             opt_params[i] = local_homo[:3]/local_homo[3]
 
 
@@ -553,6 +553,7 @@ def main():
     new_poses = []
     q1_frame_indx = np.array([])
     pose_list = []
+    local_points = []
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
         if i == frame_limit + 1:
             break
@@ -561,7 +562,7 @@ def main():
         else:
             transf = vo.get_pose(i)
             for local3D_p in vo.Q_1:
-                #print(local3D_p)
+                local_points.append(local3D_p)
                 homogen_point = np.append([local3D_p[0],local3D_p[2],local3D_p[1]], 1)
                 gobal3D_p = np.matmul(cur_pose, homogen_point)
                 # Try and homogenize propper maybe
