@@ -128,6 +128,8 @@ def objective(params, n_cams, n_Qs, cam_idxs, Q_idxs, qs):
 
     # Project the 3D points into the image planes
     qs_proj = project(Qs[Q_idxs], cam_params[cam_idxs])  # resulting projecting points
+    print("qs_proj len", len(qs_proj))
+    print("qs len", len(qs))
 
     #print("Qs Length: {}".format(len(Qs)))
     #print("Q_idxs Length: {}".format(len(Q_idxs)))

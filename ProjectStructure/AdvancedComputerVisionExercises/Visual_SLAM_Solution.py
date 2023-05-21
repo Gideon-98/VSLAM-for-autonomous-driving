@@ -523,11 +523,11 @@ def main():
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
 
     global_3d_points = np.array(global_3d_points)
-    print("Estimated path length, should be equal to number of poses",len(estimated_path))
+    #print("Estimated path length, should be equal to number of poses",len(estimated_path))
 
-    print("q_1 frame index, should be equal to poses minus one",q1_frame_indx[-1])
+    #print("q_1 frame index, should be equal to poses minus one",q1_frame_indx[-1])
 
-    print(global_3d_points)
+    #print(global_3d_points)
 
     for i in range(len(vo.tp_1)):
         lister.append_keypoints(vo.tp_1[i], vo.tp_2[i], global_3d_points[i], q1_frame_indx[i])
@@ -549,20 +549,9 @@ def main():
                 break
             print(str(x) + '\t' + str(lister.coord_3d_list[i]))
 
-    plt.plot(global_3d_points)
 
-    temp = np.array([])
-
-    oldframe = 5
-    for i in range(len(q1_frame_indx)):
-        if q1_frame_indx[i] != oldframe:
-            oldframe = q1_frame_indx[i]
-            temp = np.append(temp,global_3d_points[i])
-
-    temp = np.reshape(temp, [-1, 3])
-
-    #print(pose_list[0])
-    opt_params = run_BA(int(q1_frame_indx[-1] + 2), lister.BA_list, lister.coord_3d_list, pose_list)
+    pose_list = np.array(pose_list)
+    opt_params = run_BA(int(q1_frame_indx[-1] + 2), lister.BA_list, lister.coord_3d_list, pose_list.astype(float))
     new_transformation = vo.estimate_new_pose(opt_params, q1_frame_indx, lister.BA_list, lister.coord_3d_list)
 
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
@@ -578,6 +567,18 @@ def main():
             # from here we have the current global pose for i.
             #Here we need a function that makes the current local 3d points global.
         estimated_better_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+
+    #plt.plot(global_3d_points)
+
+    temp = np.array([])
+
+    oldframe = 5
+    for i in range(len(q1_frame_indx)):
+        if q1_frame_indx[i] != oldframe:
+            oldframe = q1_frame_indx[i]
+            temp = np.append(temp, global_3d_points[i])
+
+    temp = np.reshape(temp, [-1, 3])
 
     v = temp
     fig = plt.figure()
