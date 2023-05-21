@@ -87,7 +87,7 @@ class ListBundler:
 
         temp_list = self.duplicate_and_sort(temp_list)
         print("# of unique points: {}".format(temp_list[-1][1]))
-        temp_list = self.remove_frame_zero(temp_list)
+        #temp_list = self.remove_frame_zero(temp_list)
 
         self.BA_list = []
         self.coord_3d_list = []
@@ -101,6 +101,7 @@ class ListBundler:
         while i < len(temp_list):
             if temp_list[i][0] == 0:
                 del temp_list[i]
-            i += 1
+            else:
+                i += 1
         temp_list = sorted(temp_list, key=lambda x: (x[1], x[0]))
         return temp_list

@@ -24,11 +24,12 @@ def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
         qs[i] = [float(x), float(y)]
 
     cam_params = np.empty(n_cams * 9)
-    for i in range(0, (n_cams * 9) - 9, 9):
+    for i in range(0, (n_cams * 9) , 9):
         rot, _ = cv2.Rodrigues(dof[int(i / 9)][0:3, 0:3])
-        cam_params[i] = rot[0][0]
-        cam_params[i + 1] = rot[1][0]
-        cam_params[i + 2] = rot[2][0]
+        rot = rot.flatten()
+        cam_params[i] = rot[0]
+        cam_params[i + 1] = rot[1]
+        cam_params[i + 2] = rot[2]
         cam_params[i + 3] = dof[int(i / 9)][0][3]
         cam_params[i + 4] = dof[int(i / 9)][1][3]
         cam_params[i + 5] = dof[int(i / 9)][2][3]
@@ -86,8 +87,10 @@ def rotate(Qs, rot_vecs):
     with np.errstate(invalid='ignore'):
         v = rot_vecs / theta
         v = np.nan_to_num(v)
+        #v[np.isnan(v)] = 0
 
     dot = np.sum(Qs * v, axis=1)[:, np.newaxis]
+
     cos_theta = np.cos(theta)
     sin_theta = np.sin(theta)
 
@@ -128,8 +131,7 @@ def objective(params, n_cams, n_Qs, cam_idxs, Q_idxs, qs):
 
     # Project the 3D points into the image planes
     qs_proj = project(Qs[Q_idxs], cam_params[cam_idxs])  # resulting projecting points
-    print("qs_proj len", len(qs_proj))
-    print("qs len", len(qs))
+
 
     #print("Qs Length: {}".format(len(Qs)))
     #print("Q_idxs Length: {}".format(len(Q_idxs)))
@@ -234,7 +236,7 @@ def run_BA(frame_count, BA_list, coord_3D_list, dof):
     print("BA Done")
     #plot_residual_results(qs_small, small_residual_init, small_residual_minimized, qs, residual_init, residual_minimized)
 
-    print("Hello")
+    #print("Hello")
     return opt_params
 
 
