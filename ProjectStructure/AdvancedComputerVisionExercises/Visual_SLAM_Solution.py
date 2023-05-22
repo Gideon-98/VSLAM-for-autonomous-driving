@@ -545,13 +545,13 @@ class VisualOdometry():
                     _3D_points_for_frame = np.array([opt_params[i][0],opt_params[i][1],opt_params[i][2],1])
 
                     if i != 0:
-                        temp_tmp_Q1 = np.matmul(-curr_pose,_3D_points_for_frame) #Localise the points
-                        tmp_Q1.append(temp_tmp_Q1[:3]/temp_tmp_Q1[3])
+                        temp_tmp_Q1 = np.matmul(np.linalg.inv(curr_pose),_3D_points_for_frame) #Localise the points
+                        tmp_Q1.append([temp_tmp_Q1[0],temp_tmp_Q1[2],temp_tmp_Q1[1]]/temp_tmp_Q1[3])
                     else:
-                        tmp_Q1.append(_3D_points_for_frame[:3])
+                        tmp_Q1.append([_3D_points_for_frame[0],_3D_points_for_frame[2],_3D_points_for_frame[1]])
 
-                    temp_tmp_Q2 = np.matmul(-pose_list[i+1],_3D_points_for_frame)
-                    tmp_Q2.append(temp_tmp_Q2[:3]/temp_tmp_Q2[3])
+                    temp_tmp_Q2 = np.matmul(np.linalg.inv(pose_list[i+1]),_3D_points_for_frame)
+                    tmp_Q2.append([temp_tmp_Q2[0],temp_tmp_Q2[2],temp_tmp_Q2[1]]/temp_tmp_Q2[3])
 
 
 
@@ -616,12 +616,14 @@ def main():
         else:
             transf = vo.get_pose(i)
             for local3D_p in vo.Q_1:
-                local_points.append(local3D_p)
-                homogen_point = np.append([local3D_p[0],local3D_p[2],local3D_p[1]], 1)
-                gobal3D_p = np.matmul(cur_pose, homogen_point)
-                # Try and homogenize propper maybe
-                gobal3D_p = gobal3D_p[0:3]/gobal3D_p[3] # This might work to make the 3d points propper?
-                global_3d_points.append(gobal3D_p[:3])
+                if i != 1: # If we're working with frame 0 for our keypoint gen, then the points are already global, since f=0 is the world pose.
+                    homogen_point = np.append([local3D_p[0],local3D_p[1],local3D_p[2]], 1) # It needs to be x,y,z, we're going to end up with neg y because up for the car is down for the cam.
+                    global3D_p = np.matmul(cur_pose, homogen_point)
+                    # Try and homogenize propper maybe
+                    global3D_p = global3D_p[0:3]/global3D_p[3] # This might work to make the 3d points propper?
+                    global_3d_points.append(global3D_p[:3])
+                else:
+                    global_3d_points.append(local3D_p)
                 q1_frame_indx = np.append(q1_frame_indx,i-1)
             cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
         pose_list.append(cur_pose)
@@ -641,11 +643,11 @@ def main():
     #print("q_1 frame index, should be equal to poses minus one",q1_frame_indx[-1])
 
     #print(global_3d_points)
-    '''
+
     for i in range(len(vo.tp_1)):
         lister.append_keypoints(vo.tp_1[i], vo.tp_2[i], global_3d_points[i], q1_frame_indx[i])
     lister.list_sort()
-
+    '''
     if debug_printer:
         print(len(vo.tp_1))
         print(len(vo.tp_2))
@@ -662,15 +664,19 @@ def main():
                 break
             print(str(x) + '\t' + str(lister.coord_3d_list[i]))
 
-    
+    '''
     pose_list = np.array(pose_list)
     opt_params = run_BA(int(q1_frame_indx[-1] + 2), lister.BA_list, lister.coord_3d_list, pose_list.astype(float))
     
     new_transformation = vo.estimate_new_pose(opt_params, q1_frame_indx, lister.BA_list, lister.coord_3d_list)
+    #opt params should be in the form: all new 3D points, then cam params for poses, should be in rodreges oriengtation and xyz.
+
+    #new_transformation = vo.test_estimate_new_pose(global_3d_points, q1_frame_indx, pose_list)
+    # We for some reason get less parameters than we have total 2D points, so maybe we only get the uniqe 3D points back or something?
+    print("hellop")
+
+
     '''
-
-    new_transformation = vo.test_estimate_new_pose(global_3d_points, q1_frame_indx, pose_list)
-
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
         if i == frame_limit + 1:
             break
@@ -684,7 +690,7 @@ def main():
             # from here we have the current global pose for i.
             #Here we need a function that makes the current local 3d points global.
         estimated_better_path.append((cur_pose[0, 3], cur_pose[2, 3]))
-
+    '''
     #plt.plot(global_3d_points)
 
     temp = np.array([])
@@ -724,9 +730,9 @@ def main():
 
     plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
                              file_out=os.path.basename(data_dir) + ".html")
-
+    '''
     plotting.visualize_paths(gt_path, estimated_better_path, "Stereo Visual Odometry",
                              file_out=os.path.basename(data_dir) + ".html")
-
+    '''
 if __name__ == "__main__":
     main()

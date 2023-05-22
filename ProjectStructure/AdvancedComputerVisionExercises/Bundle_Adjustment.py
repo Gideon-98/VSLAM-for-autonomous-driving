@@ -233,6 +233,7 @@ def run_BA(frame_count, BA_list, coord_3D_list, dof):
     #plot_sparsity(sparse_mat)
     residual_init, residual_minimized, opt_params = bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs,
                                                                                     qs, sparse_mat)
+    #We should get "about 1 pixel erroe in residual"
     print("BA Done")
     #plot_residual_results(qs_small, small_residual_init, small_residual_minimized, qs, residual_init, residual_minimized)
 
