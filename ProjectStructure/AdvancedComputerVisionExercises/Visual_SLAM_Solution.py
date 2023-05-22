@@ -588,6 +588,11 @@ class VisualOdometry():
             curr_pose = np.reshape(curr_pose,[4,4])
         return np.array(adjusted_transformations)
 
+    def final_new_pose(self, opt_params, stop_point):
+        estimated_better_path = []
+        for i in range(0, int(stop_point), 9):
+            estimated_better_path.append((opt_params[i+3], opt_params[i+5]))
+        return estimated_better_path
 def main():
     data_dir = 'data/00_short'  # Try KITTI sequence 00
     # data_dir = 'data/00'  # Try KITTI sequence 00
@@ -667,13 +672,13 @@ def main():
     '''
     pose_list = np.array(pose_list)
     opt_params = run_BA(int(q1_frame_indx[-1] + 2), lister.BA_list, lister.coord_3d_list, pose_list.astype(float))
-    
-    new_transformation = vo.estimate_new_pose(opt_params, q1_frame_indx, lister.BA_list, lister.coord_3d_list)
     #opt params should be in the form: all new 3D points, then cam params for poses, should be in rodreges oriengtation and xyz.
+
+    estimated_better_path = vo.final_new_pose(opt_params, int(q1_frame_indx[-1] + 2) * 9)
 
     #new_transformation = vo.test_estimate_new_pose(global_3d_points, q1_frame_indx, pose_list)
     # We for some reason get less parameters than we have total 2D points, so maybe we only get the uniqe 3D points back or something?
-    print("hellop")
+    print("hello")
 
 
     '''
@@ -710,7 +715,7 @@ def main():
     plt.xlabel("x axies")
     plt.ylabel("y axies")
     plt.clabel("Z axies")
-    plt.show()
+    #plt.show()
 
     #for i, x in enumerate(vo.tp_1):
     #    if i > 5:
@@ -728,11 +733,25 @@ def main():
         ###    run_BA(listing.curr_frame, listing.BA_list, listing.coord_3d_list)
 
 
-    plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
-                             file_out=os.path.basename(data_dir) + ".html")
-    '''
+    #plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
+    #                         file_out=os.path.basename(data_dir) + ".html")
+
+    stop_opt = int(q1_frame_indx[-1] + 2) * 9
+    print("\n first 3:")
+    for i in range(0, stop_opt, 9):
+        print(opt_params[i:(i + 3)])
+    print("\n Second 3:")
+    for i in range(0, stop_opt, 9):
+        print(opt_params[i+3:(i + 6)])
+    print("\n Third 3:")
+    for i in range(0, stop_opt, 9):
+        print(opt_params[i+6:(i + 9)])
+    print("\n Estimated Path vs Estimated Better Path")
+    for i in range(len(estimated_path)):
+        print(estimated_path[i], estimated_better_path[i])
+
     plotting.visualize_paths(gt_path, estimated_better_path, "Stereo Visual Odometry",
                              file_out=os.path.basename(data_dir) + ".html")
-    '''
+
 if __name__ == "__main__":
     main()
