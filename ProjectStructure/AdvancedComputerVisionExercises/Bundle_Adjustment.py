@@ -24,7 +24,7 @@ def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
         qs[i] = [float(x), float(y)]
 
     cam_params = np.empty(n_cams * 9)
-    for i in range(0, (n_cams * 9) , 9):
+    for i in range(0, (n_cams * 9), 9):
         rot, _ = cv2.Rodrigues(dof[int(i / 9)][0:3, 0:3])
         rot = rot.flatten()
         cam_params[i] = rot[0]

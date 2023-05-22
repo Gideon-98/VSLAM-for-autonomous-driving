@@ -75,8 +75,7 @@ class ListBundler:
         ratio = new_length/old_unique_points
         print("Old Size: " + str(old_unique_points) + ",  New Size: " + str(new_length))
         print("List Size Reduction: " + str(reduction))
-        print("Ratio: " + str(ratio) + " times smaller")
-
+        print("Ratio: " + str(ratio) + " times smaller \n")
         return temp_list
 
     def list_sort(self):
