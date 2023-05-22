@@ -11,6 +11,7 @@ from lib.visualization.video import play_trip
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from itertools import groupby
 
 class VisualOdometry():
     def __init__(self, data_dir):
@@ -34,6 +35,14 @@ class VisualOdometry():
         self.tp_1 = np.array([])
         self.tp_2 = np.array([])
         self.Q_1 = np.array([])
+
+        self.tp_1_to_compare = []
+        self.tp_2_to_compare = []
+        self.Q_1_to_compare = []
+        self.Q_2_to_compare = []
+
+
+
 
 
     @staticmethod
@@ -403,7 +412,12 @@ class VisualOdometry():
         #print(Q1)
         self.Q_1 = Q1 #np.reshape(np.append(self.Q_1,Q1),(-1,3))
         #self.Q_2 = np.reshape(np.append(self.Q_2,Q2),(-1,3))
-        
+
+        self.tp_1_to_compare.append(tp1_l)
+        self.tp_2_to_compare.append(tp2_l)
+        self.Q_1_to_compare.append(Q1)
+        self.Q_2_to_compare.append(Q2)
+
         # Estimate the transformation matrix
         transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
         return transformation_matrix
@@ -485,16 +499,32 @@ class VisualOdometry():
         n_Qs = len(opt_params)  # Number of uniqe 3D points
         n_qs = len(opt_params)  # number of 2D points
 
-
+        '''
+        So what we are trying to do is get a better next pose.
+        We can use the key and trakcpoitns from before ba, since ba only updates the 3D points.
+        We are using least squares to find a better pose. When we used it in get pose,
+        we gave it keypoints from frame i-1, trackpoints from i, and then the local 3D points for those points
+        we can get the local 3D points for frame i-1 by just matmul'lling the inverse of our current pose.
+        Since we are going to update it anyway and just needs a closeish guess, we can use the old i pose.
+        Then we just need to find the inverse transformation matrix of old pose i, and multiply the "i-1" 3D points onto it.
+        
+        So we need, tp_1 and tp_2 for the original get_pose.
+        The new 3D points
+        A list of the old poses.
+        
+        '''
         # cam_params = opt_params[:n_cams * 9]
         # cam_params = np.array(cam_params)
         # cam_params = cam_params.reshape((n_cams, -1))
         adjusted_transformations = []
-
+        '''
+        We cannot do it this way, becase the poses are going to update as we go
         for i in range(len(opt_params)):
             local_homo = np.matmul(-pose_list[int(q1_frame_index[i])], [opt_params[i][0],opt_params[i][2],opt_params[i][1],1])
             opt_params[i] = local_homo[:3]/local_homo[3]
+        '''
 
+        curr_pose = pose_list[0]
 
         for i in range(int(q1_frame_index[-1]) + 1):  # for each frame, +1 because q1 is a frame short
             tmp_q1 = []
@@ -502,21 +532,44 @@ class VisualOdometry():
             tmp_Q1 = []
             tmp_Q2 = []
 
+            '''
+            So we start in frame 1, and we need to look back at frame 0
+            the 3D points are already local for frame 0, since that's the world frame
+            '''
+
+            #Localise 3D points
+            for k in range(len(q1_frame_index)):    # runs though each point
+                if q1_frame_index[k] == i:          # if the point is in the frame we are looking at then we localise the 3D points.
+                    tmp_q1.append(self.tp_1[k])
+                    tmp_q2.append(self.tp_2[k])
+                    _3D_points_for_frame = np.array([opt_params[i][0],opt_params[i][1],opt_params[i][2],1])
+
+                    if i != 0:
+                        temp_tmp_Q1 = np.matmul(-curr_pose,_3D_points_for_frame) #Localise the points
+                        tmp_Q1.append(temp_tmp_Q1[:3]/temp_tmp_Q1[3])
+                    else:
+                        tmp_Q1.append(_3D_points_for_frame[:3])
+
+                    temp_tmp_Q2 = np.matmul(-pose_list[i+1],_3D_points_for_frame)
+                    tmp_Q2.append(temp_tmp_Q2[:3]/temp_tmp_Q2[3])
 
 
+
+
+            '''
             for idx in range(len(q1_frame_index)):  # For the number of 2d points.
                 if q1_frame_index[idx] == i:  # is the frame'idx = to the i frame
                     tmp_q1.append(self.tp_1[idx])
                     tmp_Q1.append(opt_params[idx])
 
                 if q1_frame_index[idx] == i + 1:  # If inx = i plus 1, it logs temp q2
-                    tmp_q2.append(self.tp_1[idx])
+                    tmp_q2.append(self.tp_2[idx])
                     tmp_Q2.append(opt_params[idx])
 
                 if int(q1_frame_index[-1]) == i:
                     tmp_q2.append(self.tp_2[idx])
                     tmp_Q2.append(opt_params[idx])
-
+            '''
             if (len(tmp_q1) > len(tmp_q2)):
                 tmp_q1 = tmp_q1[:len(tmp_q2)]
                 tmp_Q1 = tmp_Q1[:len(tmp_q2)]
@@ -531,7 +584,8 @@ class VisualOdometry():
 
             if (len(tmp_q1) > 1):
                 adjusted_transformations.append(self.estimate_pose(tmp_q1, tmp_q2, tmp_Q1, tmp_Q2))
-
+            curr_pose = np.matmul(curr_pose, adjusted_transformations[i]) # save the transformation so we can localise the 3D points.
+            curr_pose = np.reshape(curr_pose,[4,4])
         return np.array(adjusted_transformations)
 
 def main():
