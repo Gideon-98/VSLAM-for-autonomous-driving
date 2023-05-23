@@ -44,8 +44,8 @@ def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
     Qs = np.empty(n_Qs * 3)
     for i in range(n_Qs):
         Qs[i * 3] = coord_3D_list[i][0]
-        Qs[i * 3 + 2] = coord_3D_list[i][1]
-        Qs[i * 3 + 1] = coord_3D_list[i][2]
+        Qs[i * 3 + 1] = coord_3D_list[i][1]
+        Qs[i * 3 + 2] = coord_3D_list[i][2]
     Qs = Qs.reshape((n_Qs, -1))
 
     # print(cam_params)
@@ -208,8 +208,8 @@ def bundle_adjustment_with_sparsity(cam_params, Qs, cam_idxs, Q_idxs, qs, sparse
 
 def run_BA(frame_count, BA_list, coord_3D_list, dof):
     cam_params, Qs, cam_idxs, Q_idxs, qs = read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof)
-    cam_params_small, Qs_small, cam_idxs_small, Q_idxs_small, qs_small = shrink_problem(1000, cam_params, Qs, cam_idxs,
-                                                                                        Q_idxs, qs)
+    #cam_params_small, Qs_small, cam_idxs_small, Q_idxs_small, qs_small = shrink_problem(1000, cam_params, Qs, cam_idxs,
+    #                                                                                    Q_idxs, qs)
     '''
     n_cams_small = cam_params_small.shape[0]
     n_Qs_small = Qs_small.shape[0]

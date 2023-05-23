@@ -750,6 +750,9 @@ def main():
     for i in range(len(estimated_path)):
         print(estimated_path[i], estimated_better_path[i])
 
+    plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
+                             file_out=os.path.basename(data_dir) + ".html")
+
     plotting.visualize_paths(gt_path, estimated_better_path, "Stereo Visual Odometry",
                              file_out=os.path.basename(data_dir) + ".html")
 
