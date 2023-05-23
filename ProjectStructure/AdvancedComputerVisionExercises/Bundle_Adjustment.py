@@ -10,7 +10,7 @@ path = "ProjectStructure/AdvancedComputerVisionExercises/data/00_short/image_l"
 
 def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
     n_cams = int(frame_count)
-    n_Qs = int(BA_list[-1][1] + 1)
+    n_Qs = int(BA_list[-1][1] + 1) #Why plus 1? oh because it is zero indexed
     n_qs = len(BA_list)
 
     cam_idxs = np.empty(n_qs, dtype=int)
@@ -36,6 +36,7 @@ def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
         cam_params[i + 6] = 707.0493000000
         cam_params[i + 7] = 604.0814000000
         cam_params[i + 8] = 180.5066000000
+        #Why set number for 6,7 and 8?
 
     print("cam_params Length: {}".format(len(cam_params)))
     cam_params = cam_params.reshape((n_cams, -1))
