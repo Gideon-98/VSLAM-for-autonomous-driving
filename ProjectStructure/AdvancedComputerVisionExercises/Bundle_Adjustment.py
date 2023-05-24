@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.sparse import lil_matrix
+import matplotlib.pyplot as plt
 
 from lib.visualization.plotting import plot_residual_results, plot_sparsity
 
@@ -117,6 +118,31 @@ def project(Qs, cam_params):
     #Try use openCV project instead of this
     return qs_proj
 
+def project_built_in(Qs, cam_params):
+    cam_params = np.array(cam_params)
+        # Extract camera intrinsic parameters
+    f_x = 7.188560000000e+02
+    f_y = f_x
+    c_x = 6.071928000000e+02
+    c_y = 1.852157000000e+02
+
+    camera_matrix = np.array([[f_x, 0., c_x], [0., f_y, c_y], [0., 0., 1.]])
+    distortion_coeffs = np.array([0., 0., 0., 0.])
+    rvec = cam_params[:,:3]
+    tvec = cam_params[:,3:6]
+
+        # Reshape 3D points to match OpenCV's input format
+    Qs_reshaped = Qs.reshape((-1, 1, 3))
+
+        # Project 3D points to 2D image coordinates using OpenCV's function
+    qs_list = []
+    for k in range(len(Qs_reshaped)):
+        qs_proj, _ = cv2.projectPoints(Qs_reshaped[k], rvec[k], tvec[k], camera_matrix, distortion_coeffs)
+        qs_list.append(qs_proj)
+    qs_list = np.array(qs_list)
+    qs_proj_reshaped = np.reshape(qs_list,[-1,2])
+
+    return qs_proj_reshaped
 
 def objective(params, n_cams, n_Qs, cam_idxs, Q_idxs, qs):
 
@@ -133,7 +159,7 @@ def objective(params, n_cams, n_Qs, cam_idxs, Q_idxs, qs):
     Qs = params[n_cams * 9:].reshape((n_Qs, 3))
 
     # Project the 3D points into the image planes
-    qs_proj = project(Qs[Q_idxs], cam_params[cam_idxs])  # resulting projecting points
+    qs_proj = project_built_in(Qs[Q_idxs], cam_params[cam_idxs])  # resulting projecting points
 
 
     #print("Qs Length: {}".format(len(Qs)))
@@ -172,6 +198,8 @@ def bundle_adjustment(cam_params, Qs, cam_idxs, Q_idxs, qs):
 
 
 def sparsity_matrix(n_cams, n_Qs, cam_idxs, Q_idxs):
+
+
 
     m = cam_idxs.size * 2  # number of residuals
     n = n_cams * 9 + n_Qs * 3  # number of parameters
