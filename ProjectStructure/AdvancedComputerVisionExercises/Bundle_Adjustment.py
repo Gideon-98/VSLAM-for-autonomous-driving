@@ -10,7 +10,7 @@ path = "ProjectStructure/AdvancedComputerVisionExercises/data/00_short/image_l"
 
 def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
     n_cams = int(frame_count)
-    n_Qs = int(BA_list[-1][1] + 1)
+    n_Qs = int(BA_list[-1][1] + 1) #Why plus 1? oh because it is zero indexed
     n_qs = len(BA_list)
 
     cam_idxs = np.empty(n_qs, dtype=int)
@@ -33,9 +33,10 @@ def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
         cam_params[i + 3] = dof[int(i / 9)][0][3]
         cam_params[i + 4] = dof[int(i / 9)][1][3]
         cam_params[i + 5] = dof[int(i / 9)][2][3]
-        cam_params[i + 6] = 707.0493000000
-        cam_params[i + 7] = 604.0814000000
-        cam_params[i + 8] = 180.5066000000
+        cam_params[i + 6] = 718.856 #645.24
+        cam_params[i + 7] = 0#607.1928
+        cam_params[i + 8] = 0#185.2157
+        #Why set number for 6,7 and 8?
 
     print("cam_params Length: {}".format(len(cam_params)))
     cam_params = cam_params.reshape((n_cams, -1))
@@ -104,14 +105,16 @@ def project(Qs, cam_params):
     qs_proj = rotate(Qs, cam_params[:, :3])
     # Translate the points by the camera translation vectors `cam_params[:, 3:6]`
     qs_proj += cam_params[:, 3:6]
-    # Un-homogenized the points by dividing the first two coordinates by the third coordinate
-    qs_proj = -qs_proj[:, :2] / qs_proj[:, 2, np.newaxis]
+    # Un-homogenized the points by dividing the first two coordinates by the third coordinate # repojected
+    qs_proj = qs_proj[:, :2] / qs_proj[:, 2, np.newaxis]
     # Distortion applied to the un-homogenized points using the camera's focal
     f, k1, k2 = cam_params[:, 6:].T  # f=length ,k1,k2= dist. parameters
-    n = np.sum(qs_proj ** 2, axis=1)
-    r = 1 + k1 * n + k2 * n ** 2
+    n = np.sum(qs_proj ** 2, axis=1)  # x²+y^2
+    r = 1 + k1 * n + k2 * n ** 2 # 97
     qs_proj *= (r * f)[:, np.newaxis]
-
+    # We are missing the principle point in our reprojection
+    #OpenCV2 docs for reprojection
+    #Try use openCV project instead of this
     return qs_proj
 
 
