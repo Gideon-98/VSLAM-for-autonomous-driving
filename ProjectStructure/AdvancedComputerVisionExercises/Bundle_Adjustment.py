@@ -5,7 +5,7 @@ from scipy.sparse import lil_matrix
 
 from lib.visualization.plotting import plot_residual_results, plot_sparsity
 
-path = "ProjectStructure/AdvancedComputerVisionExercises/data/00_short/image_l"
+path = "ProjectStructure/AdvancedComputerVisionExercises/data/KITTI_sequence_1/image_l"
 
 
 def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
@@ -34,8 +34,8 @@ def read_VSLAM_data(frame_count, BA_list, coord_3D_list, dof):
         cam_params[i + 4] = dof[int(i / 9)][1][3]
         cam_params[i + 5] = dof[int(i / 9)][2][3]
         cam_params[i + 6] = 707.0493000000
-        cam_params[i + 7] = 604.0814000000
-        cam_params[i + 8] = 180.5066000000
+        cam_params[i + 7] = 0#604.0814000000
+        cam_params[i + 8] = 0#180.5066000000
 
     print("cam_params Length: {}".format(len(cam_params)))
     cam_params = cam_params.reshape((n_cams, -1))
@@ -75,7 +75,7 @@ def shrink_problem(n, cam_params, Qs, cam_idxs, Q_idxs, qs):
 
     cam_idxs = reindex(cam_idxs)
     Q_idxs = reindex(Q_idxs)
-
+    print("camparams:", cam_params)
     return cam_params, Qs, cam_idxs, Q_idxs, qs
 
 

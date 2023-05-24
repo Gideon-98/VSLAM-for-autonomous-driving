@@ -430,6 +430,7 @@ class VisualOdometry():
         tp0, tp1 = self.track_keypoints(image_list[index], image_list[index+1], kpm1)
         tp_list.append(tp0)
         tp_for_next = cv2.KeyPoint_convert(tp1)
+        print(tp0,tp1)
 
 
         #this takes the gets the [x,y] coordinate for keypoints
@@ -438,7 +439,10 @@ class VisualOdometry():
             tp_list.append(tp1)
             tpfornext = cv2.KeyPoint_convert(tp1)
             kpm1=tpfornext
+            print(tp0,tp1)
 
+        #for i in range(len):
+            #print("points in ",i,tp_list[i])
 
         drawpoint_list=[]
         # create keypoint objects from coordinates
@@ -457,9 +461,9 @@ class VisualOdometry():
             output_images.append(output_image)
 
         #Show the image with keypoints
-        for i in range(len):
-            cv2.imshow('Image with keypoints', output_images[i])
-            cv2.waitKey(0)
+        #for i in range(len):
+        #    cv2.imshow('Image with keypoints', output_images[i])
+        #    cv2.waitKey(0)
         #cv2.destroyAllWindows()
 
     def get_descriptors(self, i,k):
@@ -484,7 +488,16 @@ def main():
     data_dir = 'data/KITTI_sequence_2'
     vo = VisualOdometry(data_dir)
 
-    vo.visualize_track(0,6)
+    kpm1 = vo.get_tiled_keypoints(vo.images_l[1], 10, 20)
+
+    vo.visualize_track(0,2)
+    #output_image = cv2.drawKeypoints(vo.images_l[1], kpm1, 0, (0, 255, 0),
+    #                                 flags=cv2.DRAW_MATCHES_FLAGS_NOT_DRAW_SINGLE_POINTS)
+    # Show the image with keypoints
+    #cv2.imshow('Image with keypoints', output_image)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
+
 
     # play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
     #

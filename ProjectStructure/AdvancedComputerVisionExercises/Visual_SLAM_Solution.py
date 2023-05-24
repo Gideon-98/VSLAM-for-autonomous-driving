@@ -413,10 +413,6 @@ class VisualOdometry():
         self.Q_1 = Q1 #np.reshape(np.append(self.Q_1,Q1),(-1,3))
         #self.Q_2 = np.reshape(np.append(self.Q_2,Q2),(-1,3))
 
-        self.tp_1_to_compare.append(tp1_l)
-        self.tp_2_to_compare.append(tp2_l)
-        self.Q_1_to_compare.append(Q1)
-        self.Q_2_to_compare.append(Q2)
 
         # Estimate the transformation matrix
         transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
@@ -594,15 +590,14 @@ class VisualOdometry():
             estimated_better_path.append((opt_params[i+3], opt_params[i+5]))
         return estimated_better_path
 def main():
-    data_dir = 'data/00_short'  # Try KITTI sequence 00
-    # data_dir = 'data/00'  # Try KITTI sequence 00
-    # data_dir = 'data/07'  # Try KITTI sequence 07
-    # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
+    data_dir = 'data/KITTI_sequence_1'  # Try KITTI sequence 00
+
     vo = VisualOdometry(data_dir)
     lister = ListBundler()
-    frame_limit = 20 # we want to see if we can see a 90deg rotation from frame 100 to 140.
+    frame_limit = 50
     debug_printer = False
-    ###listing = FeatureDetector()
+
+
     #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
     gt_path = []
@@ -625,51 +620,26 @@ def main():
                     homogen_point = np.append([local3D_p[0],local3D_p[1],local3D_p[2]], 1) # It needs to be x,y,z, we're going to end up with neg y because up for the car is down for the cam.
                     global3D_p = np.matmul(cur_pose, homogen_point)
                     # Try and homogenize propper maybe
-                    global3D_p = global3D_p[0:3]/global3D_p[3] # This might work to make the 3d points propper?
+                    global3D_p = global3D_p[0:3]/global3D_p[3]
                     global_3d_points.append(global3D_p[:3])
                 else:
                     global_3d_points.append(local3D_p)
                 q1_frame_indx = np.append(q1_frame_indx,i-1)
-            cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
+            cur_pose = np.matmul(cur_pose, transf)
         pose_list.append(cur_pose)
-            # from here we have the current global pose for i.
-            #Here we need a function that makes the current local 3d points globa
-        gt_path.append((gt_pose[0, 3], gt_pose[2, 3])) #
+        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
 
 
-    #rot100, _ = cv2.Rodrigues(pose_list[100][0:3, 0:3])
-    #rot140, _ = cv2.Rodrigues(pose_list[140][0:3, 0:3])
-
-
     global_3d_points = np.array(global_3d_points)
-    #print("Estimated path length, should be equal to number of poses",len(estimated_path))
 
-    #print("q_1 frame index, should be equal to poses minus one",q1_frame_indx[-1])
 
-    #print(global_3d_points)
 
     for i in range(len(vo.tp_1)):
         lister.append_keypoints(vo.tp_1[i], vo.tp_2[i], global_3d_points[i], q1_frame_indx[i])
+        #print("i=",i ," ",vo.tp_1[i],"  ", vo.tp_2[i]," " ,global_3d_points[i]," " , q1_frame_indx[i])
     lister.list_sort()
-    '''
-    if debug_printer:
-        print(len(vo.tp_1))
-        print(len(vo.tp_2))
-        print(len(global_3d_points))
-        print("frames: " + str(len(q1_frame_indx)))
-        print(len(lister.BA_list))
-        print("BA_list is " + str(len(lister.BA_list)/len(vo.tp_1)) + " times longer than the amount of q's")
-        print(len(lister.BA_list)/4)
-        print(len(lister.coord_3d_list))
-        print("coord_3d_list is " + str(len(lister.coord_3d_list)/len(global_3d_points)) + " times longer than the amount of Q's")
-        print(len(lister.coord_3d_list)/2)
-        for i, x in enumerate(lister.BA_list):
-            if i > 50:
-                break
-            print(str(x) + '\t' + str(lister.coord_3d_list[i]))
 
-    '''
     pose_list = np.array(pose_list)
     opt_params = run_BA(int(q1_frame_indx[-1] + 2), lister.BA_list, lister.coord_3d_list, pose_list.astype(float))
     #opt params should be in the form: all new 3D points, then cam params for poses, should be in rodreges oriengtation and xyz.
@@ -678,9 +648,6 @@ def main():
 
     #new_transformation = vo.test_estimate_new_pose(global_3d_points, q1_frame_indx, pose_list)
     # We for some reason get less parameters than we have total 2D points, so maybe we only get the uniqe 3D points back or something?
-    print("hello")
-
-
     '''
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
         if i == frame_limit + 1:
@@ -708,7 +675,7 @@ def main():
 
     temp = np.reshape(temp, [-1, 3])
 
-    v = temp
+    v = global_3d_points
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.scatter(v[:, 0], v[:, 2], v[:, 1])
@@ -750,8 +717,11 @@ def main():
     for i in range(len(estimated_path)):
         print(estimated_path[i], estimated_better_path[i])
 
+    #plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
+    #                        file_out=os.path.basename(data_dir) + ".html")
+
     plotting.visualize_paths(gt_path, estimated_better_path, "Stereo Visual Odometry",
-                             file_out=os.path.basename(data_dir) + ".html")
+                            file_out=os.path.basename(data_dir) + ".html")
 
 if __name__ == "__main__":
     main()
