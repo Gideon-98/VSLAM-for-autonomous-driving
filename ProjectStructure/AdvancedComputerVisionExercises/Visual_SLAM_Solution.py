@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from itertools import groupby
 
+
 class VisualOdometry():
     def __init__(self, data_dir):
         self.K_l, self.P_l, self.K_r, self.P_r = self._load_calib(os.path.join(data_dir, 'calib.txt'))
@@ -40,10 +41,6 @@ class VisualOdometry():
         self.tp_2_to_compare = []
         self.Q_1_to_compare = []
         self.Q_2_to_compare = []
-
-
-
-
 
     @staticmethod
     def _load_calib(filepath):
@@ -389,7 +386,7 @@ class VisualOdometry():
     def get_pose(self, i):
 
         # Get the i-1'th image and i'th image
-        img1_l, img2_l = self.images_l[i - 1:i + 1] # for i = 1 then [0:2] i = 1, then keypoint frame, is 0.
+        img1_l, img2_l = self.images_l[i - 1:i + 1]  # for i = 1 then [0:2] i = 1, then keypoint frame, is 0.
 
         # Get teh tiled keypoints
         kp1_l = self.get_tiled_keypoints(img1_l, 10, 20)
@@ -402,16 +399,16 @@ class VisualOdometry():
 
         # Calculate the right keypoints
         tp1_l, tp1_r, tp2_l, tp2_r = self.calculate_right_qs(tp1_l, tp2_l, self.disparities[i - 1], self.disparities[i])
-        
+
         # Calculate the 3D points
         Q1, Q2 = self.calc_3d(tp1_l, tp1_r, tp2_l, tp2_r)
 
         # save the trackpoints
-        self.tp_1 = np.reshape(np.append(self.tp_1,tp1_l),(-1,2))
-        self.tp_2 = np.reshape(np.append(self.tp_2,tp2_l),(-1,2))
-        #print(Q1)
-        self.Q_1 = Q1 #np.reshape(np.append(self.Q_1,Q1),(-1,3))
-        #self.Q_2 = np.reshape(np.append(self.Q_2,Q2),(-1,3))
+        self.tp_1 = np.reshape(np.append(self.tp_1, tp1_l), (-1, 2))
+        self.tp_2 = np.reshape(np.append(self.tp_2, tp2_l), (-1, 2))
+        # print(Q1)
+        self.Q_1 = Q1  # np.reshape(np.append(self.Q_1,Q1),(-1,3))
+        # self.Q_2 = np.reshape(np.append(self.Q_2,Q2),(-1,3))
 
         self.tp_1_to_compare.append(tp1_l)
         self.tp_2_to_compare.append(tp2_l)
@@ -421,96 +418,51 @@ class VisualOdometry():
         # Estimate the transformation matrix
         transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
         return transformation_matrix
-    
-    def estimate_new_pose (self, opt_params, q1_frame_index, BA_list, coord_3d_list):
-        #n_cams = int(q1_frame_index[-1] - 1)
-        n_Qs = int(BA_list[-1][1] + 1) #Number of uniqe 3D points
-        n_qs = len(BA_list) # number of 2D points
 
-        frame_idxs = np.empty(n_qs, dtype=int) #Frame index
-        Q_idxs = np.empty(n_qs, dtype=int) # What 3D point does belongs to this index
-        qs = np.empty((n_qs, 2))
+    def project_built_in(Qs, cam_params):
+        cam_params = np.array(cam_params)
+        # Extract camera intrinsic parameters
+        f_x = 7.188560000000e+02
+        f_y = f_x
+        c_x = 6.071928000000e+02
+        c_y = 1.852157000000e+02
 
-        #cam_idx = []
-        #Q_idx = []
-        #qs = []
-        #Qs = []
+        camera_matrix = np.array([[f_x, 0., c_x], [0., f_y, c_y], [0., 0., 1.]])
+        distortion_coeffs = np.array([0., 0., 0., 0.])
+        rvec = cam_params[:, :3]
+        tvec = cam_params[:, 3:6]
 
-        for i in range(len(BA_list)): #For each 2D point
-            frame_idx, Q_idx, x, y = BA_list[i]  # Frame, uniqe point number, x and y
-            frame_idxs[i] = int(frame_idx)
-            Q_idxs[i] = int(Q_idx)
-            qs[i] = [float(x), float(y)]
+        # Reshape 3D points to match OpenCV's input format
+        Qs_reshaped = Qs.reshape((-1, 1, 3))
 
-        Qs = np.empty(n_Qs * 3)
-        for i in range(n_Qs):
-            Qs[i * 3] = coord_3d_list[i][0]
-            Qs[i * 3 + 2] = coord_3d_list[i][1]
-            Qs[i * 3 + 1] = coord_3d_list[i][2]
+        # Project 3D points to 2D image coordinates using OpenCV's function
+        qs_list = []
+        for k in range(len(Qs_reshaped)):
+            qs_proj, _ = cv2.projectPoints(Qs_reshaped[k], rvec[k], tvec[k], camera_matrix, distortion_coeffs)
+            qs_list.append(qs_proj)
+        qs_list = np.array(qs_list)
+        qs_proj_reshaped = np.reshape(qs_list, [-1, 2])
 
-        # cam_params = opt_params[:n_cams * 9]
-        # cam_params = np.array(cam_params)
-        # cam_params = cam_params.reshape((n_cams, -1))
-
-        adjusted_transformations = []
-        opt_3Dpoints = opt_params
-        opt_3Dpoints = np.array(opt_3Dpoints)
-        opt_3Dpoints = opt_3Dpoints.reshape((-1, 3)) #Make the new optimised points into a Q_n*3 matrix
-    
-        for i in range(int(q1_frame_index[-1])+1): # I think this is for each frame. So tp_1.len() or something. This was +1 for some reason
-            tmp_q1 = []
-            tmp_q2 = []
-            tmp_Q1 = []
-            tmp_Q2 = []
-            for idx in range(len(q1_frame_index)): # For the number of 2d points.
-                if q1_frame_index[idx] == i:  # is the frame'idx = to the i frame
-                    tmp_q1.append(self.tp_1[idx])
-                    tmp_Q1.append(opt_3Dpoints[Q_idxs[idx]]) # It seems like the 3D points are globally indexed, hopefully they match the order of the 2D points,
-            
-                if q1_frame_index[idx] == i + 1: # If inx = i plus 1, it logs temp q2
-                    tmp_q2.append(self.tp_1[idx])
-                    tmp_Q2.append(opt_3Dpoints[Q_idxs[idx]])
-
-                if int(q1_frame_index[-1]) == i:
-                    tmp_q2.append(self.tp_2[idx])
-                    tmp_Q2.append(opt_3Dpoints[Q_idxs[idx-1]])
-        
-            if (len(tmp_q1) > len(tmp_q2)):
-                tmp_q1 = tmp_q1[:len(tmp_q2)]
-                tmp_Q1 = tmp_Q1[:len(tmp_q2)]
-            else:
-                tmp_q2 = tmp_q2[:len(tmp_q1)]
-                tmp_Q2 = tmp_Q2[:len(tmp_q1)]
-        
-            tmp_q1 = np.array(tmp_q1)
-            tmp_q2 = np.array(tmp_q2)
-            tmp_Q1 = np.array(tmp_Q1)
-            tmp_Q2 = np.array(tmp_Q2)
-        
-            if (len(tmp_q1) > 1):
-                adjusted_transformations.append(self.estimate_pose(tmp_q1, tmp_q2, tmp_Q1, tmp_Q2))
-    
-        return np.array(adjusted_transformations)
-    
-    #def plot_transformations ()
-
+        return qs_proj_reshaped
 
     def final_new_pose(self, opt_params, stop_point):
         estimated_better_path = []
         for i in range(0, int(stop_point), 9):
-            estimated_better_path.append((opt_params[i+3], opt_params[i+5]))
+            estimated_better_path.append((opt_params[i + 3], opt_params[i + 5]))
         return estimated_better_path
+
+
 def main():
-    data_dir = 'data/00'  # Try KITTI sequence 00
+    data_dir = 'data/00_short'  # Try KITTI sequence 00
     # data_dir = 'data/00'  # Try KITTI sequence 00
     # data_dir = 'data/07'  # Try KITTI sequence 07
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
     vo = VisualOdometry(data_dir)
     lister = ListBundler()
-    frame_limit = 4500 # we want to see if we can see a 90deg rotation from frame 100 to 140.
+    frame_limit = 20  # we want to see if we can see a 90deg rotation from frame 100 to 140.
     debug_printer = False
     ###listing = FeatureDetector()
-    #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
+    # play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
     gt_path = []
     estimated_path = []
@@ -520,6 +472,7 @@ def main():
     q1_frame_indx = np.array([])
     pose_list = []
     local_points = []
+    cam_params = []
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
         if i == frame_limit + 1:
             break
@@ -527,39 +480,35 @@ def main():
             cur_pose = gt_pose
         else:
             transf = vo.get_pose(i)
-
             for local3D_p in vo.Q_1:
-                if i != 1: # If we're working with frame 0 for our keypoint gen, then the points are already global, since f=0 is the world pose.
-                    homogen_point = np.append([local3D_p[0],local3D_p[1],local3D_p[2]], 1) # It needs to be x,y,z, we're going to end up with neg y because up for the car is down for the cam.
+                if i != 1:  # If we're working with frame 0 for our keypoint gen, then the points are already global, since f=0 is the world pose.
+                    homogen_point = np.append([local3D_p[0], local3D_p[1], local3D_p[2]],
+                                              1)  # It needs to be x,y,z, we're going to end up with neg y because up for the car is down for the cam.
                     global3D_p = np.matmul(cur_pose, homogen_point)
                     # Try and homogenize propper maybe
-                    global3D_p = global3D_p[0:3]/global3D_p[3] # This might work to make the 3d points propper?
+                    global3D_p = global3D_p[0:3] / global3D_p[3]  # This might work to make the 3d points propper?
                     global_3d_points.append(global3D_p[:3])
                 else:
                     global_3d_points.append(local3D_p)
-                q1_frame_indx = np.append(q1_frame_indx,i-1)
+                q1_frame_indx = np.append(q1_frame_indx, i - 1)
 
-            cur_pose = np.matmul(cur_pose, transf) ## We use this function to add the our current place, it takes a 3d position and a transfer function.
+            cur_pose = np.matmul(cur_pose,
+                                 transf)  ## We use this function to add the our current place, it takes a 3d position and a transfer function.
         pose_list.append(cur_pose)
-            # from here we have the current global pose for i.
-            #Here we need a function that makes the current local 3d points globa
-        gt_path.append((gt_pose[0, 3], gt_pose[2, 3])) #
+        # from here we have the current global pose for i.
+        # Here we need a function that makes the current local 3d points globa
+        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))  #
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
 
-    plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
-                             file_out=os.path.basename(data_dir) + ".html")
-
-
-    #rot100, _ = cv2.Rodrigues(pose_list[100][0:3, 0:3])
-    #rot140, _ = cv2.Rodrigues(pose_list[140][0:3, 0:3])
-
+    # rot100, _ = cv2.Rodrigues(pose_list[100][0:3, 0:3])
+    # rot140, _ = cv2.Rodrigues(pose_list[140][0:3, 0:3])
 
     global_3d_points = np.array(global_3d_points)
-    #print("Estimated path length, should be equal to number of poses",len(estimated_path))
+    # print("Estimated path length, should be equal to number of poses",len(estimated_path))
 
-    #print("q_1 frame index, should be equal to poses minus one",q1_frame_indx[-1])
+    # print("q_1 frame index, should be equal to poses minus one",q1_frame_indx[-1])
 
-    #print(global_3d_points)
+    # print(global_3d_points)
 
     for i in range(len(vo.tp_1)):
         lister.append_keypoints(vo.tp_1[i], vo.tp_2[i], global_3d_points[i], q1_frame_indx[i])
@@ -584,14 +533,13 @@ def main():
     '''
     pose_list = np.array(pose_list)
     opt_params = run_BA(int(q1_frame_indx[-1] + 2), lister.BA_list, lister.coord_3d_list, pose_list.astype(float))
-    #opt params should be in the form: all new 3D points, then cam params for poses, should be in rodreges oriengtation and xyz.
+    # opt params should be in the form: all new 3D points, then cam params for poses, should be in rodreges oriengtation and xyz.
 
     estimated_better_path = vo.final_new_pose(opt_params, int(q1_frame_indx[-1] + 2) * 9)
 
-    #new_transformation = vo.test_estimate_new_pose(global_3d_points, q1_frame_indx, pose_list)
+    # new_transformation = vo.test_estimate_new_pose(global_3d_points, q1_frame_indx, pose_list)
     # We for some reason get less parameters than we have total 2D points, so maybe we only get the uniqe 3D points back or something?
     print("hello")
-
 
     '''
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
@@ -608,7 +556,7 @@ def main():
             #Here we need a function that makes the current local 3d points global.
         estimated_better_path.append((cur_pose[0, 3], cur_pose[2, 3]))
     '''
-    #plt.plot(global_3d_points)
+    # plt.plot(global_3d_points)
 
     temp = np.array([])
 
@@ -627,25 +575,23 @@ def main():
     plt.xlabel("x axies")
     plt.ylabel("y axies")
     plt.clabel("Z axies")
-    #plt.show()
+    # plt.show()
 
-    #for i, x in enumerate(vo.tp_1):
+    # for i, x in enumerate(vo.tp_1):
     #    if i > 5:
     #        break
     #    print(str(x) + '\t' + str(vo.tp_2[i]) + '\t' + str(q1_frame_indx[i]))
-    #print(len(vo.Q_1))
-    #print(len(global_3d_points))
+    # print(len(vo.Q_1))
+    # print(len(global_3d_points))
 
-    #print(vo.Q_1[len(vo.Q_1)-1])
-    #print(global_3d_points[len(global_3d_points)-1])
+    # print(vo.Q_1[len(vo.Q_1)-1])
+    # print(global_3d_points[len(global_3d_points)-1])
 
+    ###dist = listing.run_feature_detector(keypoints, descriptors, coords)
+    ###if dist < listing.dist_limit:
+    ###    run_BA(listing.curr_frame, listing.BA_list, listing.coord_3d_list)
 
-        ###dist = listing.run_feature_detector(keypoints, descriptors, coords)
-        ###if dist < listing.dist_limit:
-        ###    run_BA(listing.curr_frame, listing.BA_list, listing.coord_3d_list)
-
-
-    #plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
+    # plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
     #                         file_out=os.path.basename(data_dir) + ".html")
 
     stop_opt = int(q1_frame_indx[-1] + 2) * 9
@@ -654,10 +600,10 @@ def main():
         print(opt_params[i:(i + 3)])
     print("\n Second 3:")
     for i in range(0, stop_opt, 9):
-        print(opt_params[i+3:(i + 6)])
+        print(opt_params[i + 3:(i + 6)])
     print("\n Third 3:")
     for i in range(0, stop_opt, 9):
-        print(opt_params[i+6:(i + 9)])
+        print(opt_params[i + 6:(i + 9)])
     print("\n Estimated Path vs Estimated Better Path")
     for i in range(len(estimated_path)):
         print(estimated_path[i], estimated_better_path[i])
@@ -667,6 +613,7 @@ def main():
 
     plotting.visualize_paths(gt_path, estimated_better_path, "Stereo Visual Odometry",
                              file_out=os.path.basename(data_dir) + ".html")
+
 
 if __name__ == "__main__":
     main()
