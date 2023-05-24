@@ -130,15 +130,13 @@ dmypy.json
 
 
 #ignore the data folder and its contents
-ProjectStructure/AdvancedComputerVisionExercises/data
+#ProjectStructure/AdvancedComputerVisionExercises/data
 #data/00/image_l
-#data/00/image_r
-#data/00_short/image_l
-#data/00_short/image_r
-#data/07/image_l
+ProjectStructure/AdvancedComputerVisionExercises/data/00
+ProjectStructure/AdvancedComputerVisionExercises/data/07
 #data/07/image_r
-#data/KITTI_sequence_1
-#data/KITTI_sequence_2
+ProjectStructure/AdvancedComputerVisionExercises/data/KITTI_sequence_1
+ProjectStructure/AdvancedComputerVisionExercises/data/KITTI_sequence_2
 #data/problem-49-7776-pre
 ProjectStructure/AdvancedComputerVisionExercises/lib/__pycache__/__init__.cpython-38.pyc
 ProjectStructure/AdvancedComputerVisionExercises/lib/visualization/__pycache__/__init__.cpython-38.pyc
