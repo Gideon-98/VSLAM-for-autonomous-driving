@@ -8,7 +8,6 @@ from sklearn.neighbors import NearestNeighbors
 
 # BoW code inspired by https://towardsdatascience.com/bag-of-visual-words-in-a-nutshell-9ceea97ce0fb
 
-
 class ListBundler:
     def __init__(self, n_clusters=200, n_features=500, future_iterations=6):
         self.BA_list = []
