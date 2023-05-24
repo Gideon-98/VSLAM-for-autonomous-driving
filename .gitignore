@@ -143,3 +143,5 @@ ProjectStructure/AdvancedComputerVisionExercises/lib/visualization/__pycache__/_
 *.pyc
 *.pyc
 *.pyc
+ProjectStructure/AdvancedComputerVisionExercises/data/.DS_Store
+ProjectStructure/AdvancedComputerVisionExercises/data/problem-49-7776-pre/.DS_Store
