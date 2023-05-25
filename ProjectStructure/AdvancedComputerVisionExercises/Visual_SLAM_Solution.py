@@ -512,50 +512,12 @@ class VisualOdometry():
                 compare = formated_data[i][j]
                 for k in range(len(tp1list[j])):
                     if tp1list[j][k][0] == compare[0] and tp1list[j][k][1] == compare[1]:
-                        formated_data[i].append(tp2list[j][k])
+                        formated_data[i].append([tp2list[j][k][0],tp2list[j][k][1]])
                         break
                 else:
                     formated_data[i].append([None,None])
 
-        print("hello")
-
-
-
-
-
-        for i in range(lengh):
-            frameindex.append(i)
-        for i in range(len(tp2liste[0])):
-            keypointindex.append(i)
-
-        # print(keypointindex)
-
-        def dehermangler(gamleindex, sogefra, ledei):
-            missing_indices = []
-            kopi = gamleindex
-            output = []
-            # Iterate over list1
-            for i, element in enumerate(sogefra):
-                if element not in ledei:
-                    missing_indices.append(i)
-            # print(missing_indices)
-            # Sort the index list in descending order to avoid index shifting
-            # Remove elements from my_list based on the indices
-            new_list = [element for i, element in enumerate(kopi) if i not in missing_indices]
-            return new_list
-
-        for i in range(lengh - 2):
-            for j in range(min(len(tp2liste[i]), len(keypointindex))):
-                var = [i, keypointindex[j], tp2liste[i][j]]
-                print(var)
-                output.append(var)
-
-            nyliste = dehermangler(keypointindex, tp2liste[i + 1], tp1liste[i])
-            keypointindex = nyliste
-
-        hej = sorted(output, key=lambda x: (x[1], x[0]))
-        # print(output)
-        return hej
+        return(formated_data,q1[0])
 
 
 def main():
