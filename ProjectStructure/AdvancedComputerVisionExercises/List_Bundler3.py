@@ -85,8 +85,7 @@ class ListBundler:
 
     def duplicate_and_sort(self, temp_list):
 
-        temp_list = sorted(temp_list,
-                           key=lambda x: (x[1], x[0]))  # Sort the list, with uniqe point being first then frames.
+        temp_list = sorted(temp_list, key=lambda x: (x[1], x[0]))  # Sort the list, with uniqe point being first then frames.
         match_counter = 0
         hit_counter = 0
         prev_frame_idx = 0
@@ -117,34 +116,38 @@ class ListBundler:
             # k i always a q2
             if temp_list[i][1] == temp_list[i + 1][1]:  # If i is a q1
                 for k in range(prev_frame_idx + 1, cur_frame_idx, 2):
-                    same_x = (temp_list[i][2] == temp_list[k][2])  # check if q1 for i x is the same as q2 for j x
-                    same_y = (temp_list[i][3] == temp_list[k][3])  #
-                    if same_x and same_y:
-                        # Save the q1 and q2 from the prev frame
-                        mached_points.append(temp_list[k - 1])
-                        mached_points.append(temp_list[k])
+                    actual_frame = (temp_list[i][1] == temp_list[i - 1][1])  # check if j points to a q2 elemnt
+                    correct_frame = (temp_list[i][0] == temp_list[i][0] - 1)  # check if q2 element
+                    if actual_frame and correct_frame:
+                        same_x = (temp_list[i][2] == temp_list[k][2])  # check if q1 for i x is the same as q2 for j x
+                        same_y = (temp_list[i][3] == temp_list[k][3])  #
 
-                        # Overwrite uniqe point number and 3D pos for the current frame points, and then save them
-                        # q1
-                        mached_keys_q1 = temp_list[i]
-                        mached_keys_q1[1] = temp_list[k - 1][1]
-                        mached_keys_q1[4:] = temp_list[k - 1][4:]
-                        # q2
-                        mached_keys_q2 = temp_list[i + 1]
-                        mached_keys_q2[1] = temp_list[k][1]
-                        mached_keys_q2[4:] = temp_list[k][4:]
+                        if same_x and same_y and actual_frame and correct_frame:
+                            # Save the q1 and q2 from the prev frame
+                            mached_points.append(temp_list[k - 1])
+                            mached_points.append(temp_list[k])
 
-                        mached_points.append(mached_keys_q1)
-                        mached_points.append(mached_keys_q2)
+                            # Overwrite uniqe point number and 3D pos for the current frame points, and then save them
+                            # q1
+                            mached_keys_q1 = temp_list[i]
+                            mached_keys_q1[1] = temp_list[k - 1][1]
+                            mached_keys_q1[4:] = temp_list[k - 1][4:]
+                            # q2
+                            mached_keys_q2 = temp_list[i + 1]
+                            mached_keys_q2[1] = temp_list[k][1]
+                            mached_keys_q2[4:] = temp_list[k][4:]
 
-                        '''
-                        When we get a match between q2 of frame i and q1 of frame i+1
-                        Then q2(i) and q1(i+1), are going to be indentical, since I force them to have the same 3D point
-                        So maybe the remove dupes thing lucas had was to remove those?
-                        Because if the projection or whatever, looks at each uniqe 3D point, and tries to assign
-                        Transformations to each of them, then it's going to try to transform to the same area twice
-                        which might cause problems
-                        '''
+                            mached_points.append(mached_keys_q1)
+                            mached_points.append(mached_keys_q2)
+
+                            '''
+                            When we get a match between q2 of frame i and q1 of frame i+1
+                            Then q2(i) and q1(i+1), are going to be indentical, since I force them to have the same 3D point
+                            So maybe the remove dupes thing lucas had was to remove those?
+                            Because if the projection or whatever, looks at each uniqe 3D point, and tries to assign
+                            Transformations to each of them, then it's going to try to transform to the same area twice
+                            which might cause problems
+                            '''
 
         '''
             # curr_frame_idx is equal to where keyframe 1 starts
