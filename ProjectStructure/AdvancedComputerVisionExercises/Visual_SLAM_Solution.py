@@ -15,11 +15,11 @@ from itertools import groupby
 
 
 class VisualOdometry():
-    def __init__(self, data_dir):
+    def __init__(self, data_dir,frame_limit):
         self.K_l, self.P_l, self.K_r, self.P_r = self._load_calib(os.path.join(data_dir, 'calib.txt'))
         self.gt_poses = self._load_poses(os.path.join(data_dir, 'poses.txt'))
-        self.images_l = self._load_images(os.path.join(data_dir, 'image_l'))
-        self.images_r = self._load_images(os.path.join(data_dir, 'image_r'))
+        self.images_l = self._load_images(os.path.join(data_dir, 'image_l'), frame_limit)
+        self.images_r = self._load_images(os.path.join(data_dir, 'image_r'), frame_limit)
 
         block = 11
         P1 = block * block * 8
@@ -89,7 +89,7 @@ class VisualOdometry():
         return poses
 
     @staticmethod
-    def _load_images(filepath):
+    def _load_images(filepath, frame_limit):
         """
         Loads the images
 
@@ -102,6 +102,7 @@ class VisualOdometry():
         images (list): grayscale images. Shape (n, height, width)
         """
         image_paths = [os.path.join(filepath, file) for file in sorted(os.listdir(filepath))]
+        image_paths = image_paths[:frame_limit]
         images = [cv2.imread(path, cv2.IMREAD_GRAYSCALE) for path in image_paths]
         return images
 
@@ -453,13 +454,13 @@ class VisualOdometry():
 
 
 def main():
-    data_dir = 'data/00_short'  # Try KITTI sequence 00
+    data_dir = 'data/00'  # Try KITTI sequence 00
     # data_dir = 'data/00'  # Try KITTI sequence 00
     # data_dir = 'data/07'  # Try KITTI sequence 07
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
-    vo = VisualOdometry(data_dir)
-    lister = ListBundler()
     frame_limit = 20  # we want to see if we can see a 90deg rotation from frame 100 to 140.
+    vo = VisualOdometry(data_dir, frame_limit+1)
+    lister = ListBundler()
     debug_printer = False
     ###listing = FeatureDetector()
     # play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
@@ -593,7 +594,7 @@ def main():
 
     # plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
     #                         file_out=os.path.basename(data_dir) + ".html")
-
+    '''
     stop_opt = int(q1_frame_indx[-1] + 2) * 9
     print("\n first 3:")
     for i in range(0, stop_opt, 9):
@@ -607,7 +608,7 @@ def main():
     print("\n Estimated Path vs Estimated Better Path")
     for i in range(len(estimated_path)):
         print(estimated_path[i], estimated_better_path[i])
-
+    '''
     plotting.visualize_paths(gt_path, estimated_path, "Stereo Visual Odometry",
                              file_out=os.path.basename(data_dir) + ".html")
 
