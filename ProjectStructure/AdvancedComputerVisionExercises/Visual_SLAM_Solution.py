@@ -15,9 +15,9 @@ from itertools import groupby
 
 
 class VisualOdometry():
-    def __init__(self, data_dir,frame_limit):
+    def __init__(self, data_dir, frame_limit):
         self.K_l, self.P_l, self.K_r, self.P_r = self._load_calib(os.path.join(data_dir, 'calib.txt'))
-        self.gt_poses = self._load_poses(os.path.join(data_dir, 'poses.txt'))
+        self.gt_poses = self._load_poses(os.path.join(data_dir, 'poses.txt'), frame_limit)
         self.images_l = self._load_images(os.path.join(data_dir, 'image_l'), frame_limit)
         self.images_r = self._load_images(os.path.join(data_dir, 'image_r'), frame_limit)
 
@@ -67,7 +67,7 @@ class VisualOdometry():
         return K_l, P_l, K_r, P_r
 
     @staticmethod
-    def _load_poses(filepath):
+    def _load_poses(filepath, frame_limit):
         """
         Loads the GT poses
 
@@ -86,6 +86,7 @@ class VisualOdometry():
                 T = T.reshape(3, 4)
                 T = np.vstack((T, [0, 0, 0, 1]))
                 poses.append(T)
+        poses = poses[:frame_limit]
         return poses
 
     @staticmethod
