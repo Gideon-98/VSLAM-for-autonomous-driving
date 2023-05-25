@@ -29,6 +29,7 @@ class VisualOdometry():
         self.disparities = [
             np.divide(self.disparity.compute(self.images_l[0], self.images_r[0]).astype(np.float32), 16)]
         self.fastFeatures = cv2.FastFeatureDetector_create()
+        self.disparities2 = [np.divide(self.disparity.compute(self.images_l[0], self.images_r[0]).astype(np.float32), 16)]
 
         self.lk_params = dict(winSize=(15, 15),
                               flags=cv2.MOTION_AFFINE,
@@ -454,13 +455,115 @@ class VisualOdometry():
             estimated_better_path.append((opt_params[i + 3], opt_params[i + 5]))
         return estimated_better_path
 
+    def track_and_triangulate(self, i, keypoint):
+        # Get the i-1'th image and i'th image
+        img1_l, img2_l = self.images_l[i - 1:i + 1]
+
+        # Track the keypoints
+        tp1_l, tp2_l = self.track_keypoints(img1_l, img2_l, keypoint)
+
+        # Calculate the disparitie
+        self.disparities2.append(np.divide(self.disparity.compute(img2_l, self.images_r[i]).astype(np.float32), 16))
+
+        # Calculate the right keypoints
+        tp1_l, tp1_r, tp2_l, tp2_r = self.calculate_right_qs(tp1_l, tp2_l, self.disparities2[i - 1],
+                                                             self.disparities2[i])
+
+        # Calculate the 3D points
+        Q1, Q2 = self.calc_3d(tp1_l, tp1_r, tp2_l, tp2_r)
+
+        # Estimate the transformation matrix
+        #transformation_matrix = self.estimate_pose(tp1_l, tp2_l, Q1, Q2)
+        return tp1_l, tp2_l, Q1, Q2
+
+    def track_point_gen(self, from_frame,to_frame):
+        start = from_frame
+        lengh = to_frame-from_frame
+
+        tp1list = []
+        tp2list = []
+        q1list = []
+        q2list = []
+        frameindex = []
+        keypointindex = []
+        output = []
+
+        keypoints = self.get_tiled_keypoints(self.images_l[start], 20, 20)
+        #Generate keypoints from frame 0
+        for i in range(lengh): # Run for all frames. This function in essense, ceates keypoints in frame 0, then tries to track them though all frames
+            if i == 0:
+                print("i=0")
+            else:
+                tp1, tp2, Q1, Q2 = self.track_and_triangulate(i, keypoints) # returns trackable keypoints from tp1 to tp2
+                #when run for a second time, then the "keypoints" are the trackable points from image 1
+                #transliste.append(trans) #Saves the transformation from one frame to another only based on trackable points
+                tp1list.append(tp1) # saves the trackable points from frame i-1
+                tp2list.append(tp2)
+                q1list.append(Q1)
+                q2list.append(Q2)
+                keypoints = cv2.KeyPoint_convert(tp2)
+
+        formated_data = []
+        for i in range(len(tp1list[0])): # save all the frame 0 trackable keypoints, and their frame 1 trackpoints, in seperate arrays
+            formated_data.append([[tp1list[0][i][0],tp1list[0][i][1]],[tp2list[0][i][0],tp2list[0][i][1]]])
+
+        for j in range(1,len(tp1list)):
+            for i in range(len(formated_data)): # for each of our tracked points
+                compare = formated_data[i][j]
+                for k in range(len(tp1list[j])):
+                    if tp1list[j][k][0] == compare[0] and tp1list[j][k][1] == compare[1]:
+                        formated_data[i].append(tp2list[j][k])
+                        break
+                else:
+                    formated_data[i].append([None,None])
+
+        print("hello")
+
+
+
+
+
+        for i in range(lengh):
+            frameindex.append(i)
+        for i in range(len(tp2liste[0])):
+            keypointindex.append(i)
+
+        # print(keypointindex)
+
+        def dehermangler(gamleindex, sogefra, ledei):
+            missing_indices = []
+            kopi = gamleindex
+            output = []
+            # Iterate over list1
+            for i, element in enumerate(sogefra):
+                if element not in ledei:
+                    missing_indices.append(i)
+            # print(missing_indices)
+            # Sort the index list in descending order to avoid index shifting
+            # Remove elements from my_list based on the indices
+            new_list = [element for i, element in enumerate(kopi) if i not in missing_indices]
+            return new_list
+
+        for i in range(lengh - 2):
+            for j in range(min(len(tp2liste[i]), len(keypointindex))):
+                var = [i, keypointindex[j], tp2liste[i][j]]
+                print(var)
+                output.append(var)
+
+            nyliste = dehermangler(keypointindex, tp2liste[i + 1], tp1liste[i])
+            keypointindex = nyliste
+
+        hej = sorted(output, key=lambda x: (x[1], x[0]))
+        # print(output)
+        return hej
+
 
 def main():
     data_dir = 'data/00'  # Try KITTI sequence 00
     # data_dir = 'data/00'  # Try KITTI sequence 00
     # data_dir = 'data/07'  # Try KITTI sequence 07
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
-    frame_limit = 500  # we want to see if we can see a 90deg rotation from frame 100 to 140.
+    frame_limit = 20  # we want to see if we can see a 90deg rotation from frame 100 to 140.
     vo = VisualOdometry(data_dir, frame_limit+1)
     lister = ListBundler()
     remove_duplicates = True
@@ -514,6 +617,8 @@ def main():
 
     # rot100, _ = cv2.Rodrigues(pose_list[100][0:3, 0:3])
     # rot140, _ = cv2.Rodrigues(pose_list[140][0:3, 0:3])
+
+    vo.track_point_gen(0,5)
 
     global_3d_points = np.array(global_3d_points)
     if remove_duplicates:
