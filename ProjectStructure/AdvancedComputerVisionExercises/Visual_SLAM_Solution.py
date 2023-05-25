@@ -10,6 +10,7 @@ from lib.visualization.video import play_trip
 
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import statistics
 from mpl_toolkits.mplot3d import Axes3D
 from itertools import groupby
 
@@ -459,22 +460,22 @@ def main():
     # data_dir = 'data/00'  # Try KITTI sequence 00
     # data_dir = 'data/07'  # Try KITTI sequence 07
     # data_dir = 'data/KITTI_sequence_1'  # Try KITTI_sequence_2
-    frame_limit = 20  # we want to see if we can see a 90deg rotation from frame 100 to 140.
+    frame_limit = 500  # we want to see if we can see a 90deg rotation from frame 100 to 140.
     vo = VisualOdometry(data_dir, frame_limit+1)
     lister = ListBundler()
-    debug_printer = False
+    remove_duplicates = True
     ###listing = FeatureDetector()
     # play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
 
     gt_path = []
     estimated_path = []
-    estimated_better_path = []
     global_3d_points = []
-    new_poses = []
     q1_frame_indx = np.array([])
     pose_list = []
-    local_points = []
-    cam_params = []
+    outlier_idx = []
+    x_outliers = 0
+    y_outliers = 0
+    z_outliers = 0
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
         if i == frame_limit + 1:
             break
@@ -483,6 +484,15 @@ def main():
         else:
             transf = vo.get_pose(i)
             for local3D_p in vo.Q_1:
+                if abs(local3D_p[0]) > statistics.median(np.absolute(vo.Q_1[:, 0])) + 4:
+                    outlier_idx.append(len(global_3d_points))
+                    x_outliers += 1
+                elif abs(local3D_p[1]) > statistics.median(np.absolute(vo.Q_1[:, 1])) + 4:
+                    outlier_idx.append(len(global_3d_points))
+                    y_outliers += 1
+                elif local3D_p[2] > statistics.median(vo.Q_1[:, 2]):
+                    outlier_idx.append(len(global_3d_points))
+                    z_outliers += 1
                 if i != 1:  # If we're working with frame 0 for our keypoint gen, then the points are already global, since f=0 is the world pose.
                     homogen_point = np.append([local3D_p[0], local3D_p[1], local3D_p[2]],
                                               1)  # It needs to be x,y,z, we're going to end up with neg y because up for the car is down for the cam.
@@ -506,6 +516,19 @@ def main():
     # rot140, _ = cv2.Rodrigues(pose_list[140][0:3, 0:3])
 
     global_3d_points = np.array(global_3d_points)
+    if remove_duplicates:
+        print("Outliers in x: " + str(x_outliers))
+        print("Outliers in y: " + str(y_outliers))
+        print("Outliers in z: " + str(z_outliers))
+        print("Removing Outliers...")
+        with tqdm(total=len(outlier_idx) - 1, unit="Outliers") as pbar:
+            for i in range(len(outlier_idx) - 1, 0, -1):
+                global_3d_points = np.delete(global_3d_points, outlier_idx[i], 0)
+                vo.tp_1 = np.delete(vo.tp_1, outlier_idx[i], 0)
+                vo.tp_2 = np.delete(vo.tp_2, outlier_idx[i], 0)
+                q1_frame_indx = np.delete(q1_frame_indx, outlier_idx[i])
+                pbar.update(1)
+        print("Outliers Removed")
     # print("Estimated path length, should be equal to number of poses",len(estimated_path))
 
     # print("q_1 frame index, should be equal to poses minus one",q1_frame_indx[-1])
@@ -515,32 +538,10 @@ def main():
     for i in range(len(vo.tp_1)):
         lister.append_keypoints(vo.tp_1[i], vo.tp_2[i], global_3d_points[i], q1_frame_indx[i])
     lister.list_sort()
-    '''
-    if debug_printer:
-        print(len(vo.tp_1))
-        print(len(vo.tp_2))
-        print(len(global_3d_points))
-        print("frames: " + str(len(q1_frame_indx)))
-        print(len(lister.BA_list))
-        print("BA_list is " + str(len(lister.BA_list)/len(vo.tp_1)) + " times longer than the amount of q's")
-        print(len(lister.BA_list)/4)
-        print(len(lister.coord_3d_list))
-        print("coord_3d_list is " + str(len(lister.coord_3d_list)/len(global_3d_points)) + " times longer than the amount of Q's")
-        print(len(lister.coord_3d_list)/2)
-        for i, x in enumerate(lister.BA_list):
-            if i > 50:
-                break
-            print(str(x) + '\t' + str(lister.coord_3d_list[i]))
-
-    '''
-    pose_list = np.array(pose_list)
-    opt_params = run_BA(int(q1_frame_indx[-1] + 2), lister.BA_list, lister.coord_3d_list, pose_list.astype(float))
-    # opt params should be in the form: all new 3D points, then cam params for poses, should be in rodreges oriengtation and xyz.
-
-    estimated_better_path = vo.final_new_pose(opt_params, int(q1_frame_indx[-1] + 2) * 9)
 
     # new_transformation = vo.test_estimate_new_pose(global_3d_points, q1_frame_indx, pose_list)
     # We for some reason get less parameters than we have total 2D points, so maybe we only get the uniqe 3D points back or something?
+
     print("hello")
 
     '''
@@ -561,12 +562,20 @@ def main():
     # plt.plot(global_3d_points)
 
     temp = np.array([])
-
+    '''
     oldframe = 5
     for i in range(len(q1_frame_indx)):
         if q1_frame_indx[i] != oldframe:
             oldframe = q1_frame_indx[i]
             temp = np.append(temp, global_3d_points[i])
+
+    temp = np.reshape(temp, [-1, 3])
+    '''
+    oldframe = 5
+    for i in range(len(lister.BA_list)):
+        if lister.BA_list[i][0] != oldframe:
+            oldframe = q1_frame_indx[i]
+            temp = np.append(temp, lister.coord_3d_list[i])#global_3d_points[i])
 
     temp = np.reshape(temp, [-1, 3])
 
@@ -577,7 +586,13 @@ def main():
     plt.xlabel("x axies")
     plt.ylabel("y axies")
     plt.clabel("Z axies")
-    # plt.show()
+    plt.show()
+
+    pose_list = np.array(pose_list)
+    opt_params = run_BA(int(q1_frame_indx[-1] + 2), lister.BA_list, lister.coord_3d_list, pose_list.astype(float))
+    # opt params should be in the form: all new 3D points, then cam params for poses, should be in rodreges oriengtation and xyz.
+
+    estimated_better_path = vo.final_new_pose(opt_params, int(q1_frame_indx[-1] + 2) * 9)
 
     # for i, x in enumerate(vo.tp_1):
     #    if i > 5:
