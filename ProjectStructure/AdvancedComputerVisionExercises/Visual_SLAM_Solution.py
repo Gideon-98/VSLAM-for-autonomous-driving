@@ -283,6 +283,8 @@ class VisualOdometry():
             q_idx = q.astype(int)
             disp = disp.T[q_idx[:, 0], q_idx[:, 1]]
             return disp, np.where(np.logical_and(min_disp < disp, disp < max_disp), True, False)
+        
+        
 
         # Get the disparity's for the feature points and mask for min_disp & max_disp
         disp1, mask1 = get_idxs(q1, disp1)
@@ -366,7 +368,7 @@ class VisualOdometry():
             error = error.reshape((Q1.shape[0] * 2, 2))
             error = np.sum(np.linalg.norm(error, axis=1))
 
-            # Check if the error is less the the current min error. Save the result if it is
+            # Check if the error is less the current min error. Save the result if it is
             if error < min_error:
                 min_error = error
                 out_pose = opt_res.x
@@ -517,7 +519,7 @@ class VisualOdometry():
                 else:
                     formated_data[i].append([None,None])
 
-        return(formated_data,q1[0])
+        return(formated_data,q1list[0])
 
 
 def main():

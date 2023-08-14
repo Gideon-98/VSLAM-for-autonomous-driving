@@ -459,9 +459,6 @@ class VisualOdometry():
 def main():
     data_dir = 'data/KITTI_sequence_1'
     vo = VisualOdometry(data_dir)
-
-    #play_trip(vo.images_l, vo.images_r)  # Comment out to not play the trip
-
     # gt_path = []
     # estimated_path = []
     # for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="poses")):
@@ -476,10 +473,6 @@ def main():
     #                          file_out=os.path.basename(data_dir) + ".html")
     #vo.extract_features(1)
     vo.descriptor_list()
-
-
-
-
 
 if __name__ == "__main__":
     main()
