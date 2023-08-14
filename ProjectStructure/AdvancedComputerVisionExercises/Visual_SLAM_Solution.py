@@ -519,7 +519,7 @@ class VisualOdometry():
                 else:
                     formated_data[i].append([None,None])
 
-        return(formated_data,q1list[0])
+        return(formated_data,q1[0])
 
 
 def main():
