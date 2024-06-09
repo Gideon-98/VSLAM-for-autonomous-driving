@@ -29,8 +29,6 @@ Current Steps :
 
 ▶ Incorporate exercise 2's solution into exercise 4
 
-    ▶ Report can be written at this point (BARE MINIMUM)
-
 ▶ Develop and implement loop closure
 
 ▶ More advanced VSLAM methods (ORB-SLAM etc.)
